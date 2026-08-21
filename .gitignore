@@ -141,3 +141,41 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+
+# Python & ML
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pkl
+*.joblib
+.pytest_cache/
+
+# Prevents duplicate Windows folders
+* - Copy/
+* - Copy (2)/
+
+# Blocks stray root images and test scripts
+a.*
+b.*
+test.*
+temp/
+scratch/
+
+# MongoDB / Local database artifacts
+data/
+db/
+*.dump
+mongod.lock
+
+# Lock Down Root: Block accidental root files & folders
+/*
+!/client/
+!/server/
+!/ml-service/
+!/README.md
+!.gitignore
+!.env.example
+!LICENSE
