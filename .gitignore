@@ -174,7 +174,7 @@ mongod.lock
 /*
 !/client/
 !/server/
-!/ml-service/
+!/ml/
 !/README.md
 !.gitignore
 !.env.example
