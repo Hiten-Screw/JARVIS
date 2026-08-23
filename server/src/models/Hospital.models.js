@@ -36,28 +36,10 @@ const hospitalSchema = new Schema(
             trim: true
         },
 
-        // Diseases/departments the hospital specializes in
+        // Diseases/departments treated by the hospital
         specializations: {
             type: [String],
             default: []
-        },
-
-        totalBeds: {
-            type: Number,
-            required: true,
-            min: 0
-        },
-
-        icuBeds: {
-            type: Number,
-            required: true,
-            min: 0
-        },
-
-        emergencyBeds: {
-            type: Number,
-            required: true,
-            min: 0
         }
     },
     {
@@ -65,7 +47,7 @@ const hospitalSchema = new Schema(
     }
 );
 
-// Required for MongoDB geospatial queries
+// Required for nearby-hospital queries
 hospitalSchema.index({ location: "2dsphere" });
 
 export const Hospital = mongoose.model("Hospital", hospitalSchema);
