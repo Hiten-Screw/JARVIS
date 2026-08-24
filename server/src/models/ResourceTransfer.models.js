@@ -25,11 +25,6 @@ const resourceTransferSchema = new Schema(
             ]
         },
 
-        medicineId: {
-            type: Schema.Types.ObjectId,
-            ref: "Medicine"
-        },
-
         resourceId: {
             type: Schema.Types.ObjectId,
             ref: "HospitalResource"

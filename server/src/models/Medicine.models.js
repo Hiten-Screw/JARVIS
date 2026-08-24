@@ -36,8 +36,6 @@ const medicineSchema = new Schema(
                 "vial",
                 "injection",
                 "strip",
-                "tube",
-                "sachet"
             ]
         }
     },

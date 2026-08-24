@@ -37,9 +37,26 @@ const hospitalSchema = new Schema(
         },
 
         // Diseases/departments treated by the hospital
-        specializations: {
-            type: [String],
-            default: []
+        specializations: [
+            {
+                type: String,
+                trim: true
+            }
+        ],
+
+        emergencyDepartment: {
+            type: Boolean,
+            default: false
+        },
+
+        hospitalType: {
+            type: String,
+            enum: [
+                "government",
+                "private",
+                "specialized",
+                "other"
+            ]
         }
     },
     {
