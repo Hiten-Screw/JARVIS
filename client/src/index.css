@@ -1,0 +1,9 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+/* Force Leaflet map pane to fill full parent container */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 1rem;
+}
