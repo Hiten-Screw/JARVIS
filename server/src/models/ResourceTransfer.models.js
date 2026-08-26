@@ -14,20 +14,10 @@ const resourceTransferSchema = new Schema(
             required: true
         },
 
-        resourceType: {
-            type: String,
-            required: true,
-            enum: [
-                "medicine",
-                "blood",
-                "oxygen",
-                "equipment"
-            ]
-        },
-
-        resourceId: {
+        medicine: {
             type: Schema.Types.ObjectId,
-            ref: "HospitalResource"
+            ref: "Medicine",
+            required: true
         },
 
         quantity: {
@@ -39,37 +29,27 @@ const resourceTransferSchema = new Schema(
         status: {
             type: String,
             enum: [
-                "requested",
-                "approved",
-                "rejected",
-                "inTransit",
-                "completed",
-                "cancelled"
+                "RECOMMENDED",
+                "APPROVED",
+                "REJECTED",
+                "COMPLETED"
             ],
-            default: "requested"
-        },
-
-        requestedBy: {
-            type: Schema.Types.ObjectId,
-            ref: "User",
-            required: true
+            default: "RECOMMENDED"
         },
 
         approvedBy: {
             type: Schema.Types.ObjectId,
-            ref: "User"
+            ref: "User",
+            default: null
         },
 
-        completedAt: {
-            type: Date
+        transferDate: {
+            type: Date,
+            default: Date.now
         }
     },
-    {
-        timestamps: true
-    }
+    { timestamps: true }
 );
 
-export const ResourceTransfer = mongoose.model(
-    "ResourceTransfer",
-    resourceTransferSchema
-);
+export const ResourceTransfer =
+    mongoose.model("ResourceTransfer", resourceTransferSchema);
