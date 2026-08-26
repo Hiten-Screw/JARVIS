@@ -166,7 +166,6 @@ scratch/
 
 # MongoDB / Local database artifacts
 server/data/
-db/
 *.dump
 mongod.lock
 
