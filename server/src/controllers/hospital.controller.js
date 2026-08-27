@@ -8,6 +8,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 // POST /api/v1/hospitals
 export const createHospital = asyncHandler(async (req, res) => {
     const {
+        hospitalId,
         name,
         address,
         location,
@@ -16,8 +17,10 @@ export const createHospital = asyncHandler(async (req, res) => {
         emergencyDepartment,
         hospitalType
     } = req.body;
+    const normalizedHospitalId = hospitalId?.trim().toUpperCase();
 
     if (
+        !normalizedHospitalId ||
         !name ||
         !address ||
         !contact ||
@@ -40,16 +43,19 @@ export const createHospital = asyncHandler(async (req, res) => {
         );
     }
 
-    const existingHospital = await Hospital.findOne({ name });
+    const existingHospital = await Hospital.findOne({
+        $or: [{ hospitalId: normalizedHospitalId }, { name }]
+    });
 
     if (existingHospital) {
         throw new ApiError(
             409,
-            "Hospital with this name already exists"
+            "Hospital ID or name already exists"
         );
     }
 
     const hospital = await Hospital.create({
+        hospitalId: normalizedHospitalId,
         name,
         address,
         location,

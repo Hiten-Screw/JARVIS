@@ -17,10 +17,10 @@ router.route("/:id").get(getHospitalById);
 // Protected write routes (AUTHORITY only)
 router
   .route("/")
-  .post(verifyJWT, authorizeRoles("AUTHORITY"), createHospital);
+  .post(verifyJWT, authorizeRoles("SUPER_ADMIN"), createHospital);
 
 router
   .route("/:id")
-  .patch(verifyJWT, authorizeRoles("AUTHORITY"), updateHospital);
+  .patch(verifyJWT, authorizeRoles("SUPER_ADMIN"), updateHospital);
 
 export default router;

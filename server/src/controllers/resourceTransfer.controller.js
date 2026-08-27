@@ -118,7 +118,7 @@ export const getTransfers = asyncHandler(async (req, res) => {
         .populate("fromHospital", "name address")
         .populate("toHospital", "name address")
         .populate("medicine", "name category")
-        .populate("approvedBy", "name email")
+        .populate("approvedBy", "userId role")
         .sort({ createdAt: -1 });
 
     return res
@@ -140,7 +140,7 @@ export const getTransferById = asyncHandler(async (req, res) => {
         .populate("fromHospital", "name address")
         .populate("toHospital", "name address")
         .populate("medicine", "name category")
-        .populate("approvedBy", "name email");
+        .populate("approvedBy", "userId role");
 
     if (!transfer) {
         throw new ApiError(

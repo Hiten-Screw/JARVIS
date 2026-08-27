@@ -6,6 +6,41 @@ import { MedicineDemandPrediction } from "../models/MedicineDemandPrediction.mod
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { Hospital } from "../models/Hospital.models.js";
+import mongoose from "mongoose";
+
+const resolveHospital = async (value) => {
+    if (!value) return null;
+    return mongoose.isValidObjectId(value)
+        ? Hospital.findById(value)
+        : Hospital.findOne({ hospitalId: value.trim().toUpperCase() });
+};
+
+export const getMedicines = asyncHandler(async (req, res) => {
+    const medicines = await Medicine.find().sort({ name: 1 });
+
+    return res.status(200).json(
+        new ApiResponse(200, medicines, "Medicines retrieved successfully")
+    );
+});
+
+export const getInventory = asyncHandler(async (req, res) => {
+    const hospitalId = req.user.role === "SUPER_ADMIN"
+        ? req.query.hospitalId
+        : req.user.hospitalId;
+
+    if (!hospitalId) {
+        throw new ApiError(400, "Hospital ID is required");
+    }
+
+    const inventory = await MedicineInventory.find({ hospitalId })
+        .populate("medicineId", "name genericName category manufacturer unit")
+        .sort({ updatedAt: -1 });
+
+    return res.status(200).json(
+        new ApiResponse(200, inventory, "Medicine inventory retrieved successfully")
+    );
+});
 
 
 // Create a medicine in the global master catalog
@@ -58,13 +93,22 @@ export const updateInventory = asyncHandler(async (req, res) => {
         hospitalId,
         medicineId,
         quantity,
-        unitPrice
+        unitPrice,
+        minimumStock,
+        expiryDate
     } = req.body;
+    const hospital = await resolveHospital(
+        req.user.role === "SUPER_ADMIN" ? hospitalId : req.user.hospitalId
+    );
+    const hospitalObjectId = hospital?._id;
+    if (!hospital) throw new ApiError(404, "Hospital not found");
 
     if (
         !hospitalId ||
         !medicineId ||
-        quantity === undefined
+        quantity === undefined ||
+        minimumStock === undefined ||
+        !expiryDate
     ) {
         throw new ApiError(
             400,
@@ -81,8 +125,8 @@ export const updateInventory = asyncHandler(async (req, res) => {
 
     // Hospital admin can update only their own hospital
     if (
-        req.user.role === "HOSPITAL_ADMIN" &&
-        req.user.hospitalId?.toString() !== hospitalId
+        ["HOSPITAL_ADMIN", "INVENTORY_STAFF"].includes(req.user.role) &&
+        req.user.hospitalId?.toString() !== hospitalObjectId.toString()
     ) {
         throw new ApiError(
             403,
@@ -102,13 +146,15 @@ export const updateInventory = asyncHandler(async (req, res) => {
     const inventory =
         await MedicineInventory.findOneAndUpdate(
             {
-                hospitalId,
+                hospitalId: hospitalObjectId,
                 medicineId
             },
             {
                 $set: {
                     quantity,
-                    unitPrice
+                    unitPrice,
+                    minimumStock,
+                    expiryDate
                 }
             },
             {
@@ -134,7 +180,7 @@ export const updateInventory = asyncHandler(async (req, res) => {
 // POST /api/v1/medicines/consumption
 export const logConsumption = asyncHandler(async (req, res) => {
     const {
-        hospitalId,
+                hospitalId: hospitalObjectId,
         medicineId,
         quantityConsumed
     } = req.body;

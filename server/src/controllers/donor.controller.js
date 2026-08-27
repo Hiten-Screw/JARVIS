@@ -73,7 +73,7 @@ export const getMyDonorProfile = asyncHandler(async (req, res) => {
         userId: req.user._id
     }).populate(
         "userId",
-        "name email"
+        "userId role"
     );
 
     if (!donor) {

@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
 import { User } from "../models/user.models.js";
+import { Hospital } from "../models/Hospital.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -18,51 +19,58 @@ const generateToken = (userId) => {
 
 export const registerUser = asyncHandler(async (req, res) => {
     const {
-        name,
-        email,
+        userId,
         password,
         role,
         hospitalId
     } = req.body;
+    const normalizedHospitalId = hospitalId?.trim().toUpperCase();
 
-    if (!name || !email || !password) {
+    if (!userId || !password) {
         throw new ApiError(
             400,
-            "Name, email, and password are required"
+            "User ID and password are required"
         );
     }
 
-    const selectedRole = role || "PATIENT";
+    const selectedRole = role || "NURSE";
 
-    if (!["PATIENT", "HOSPITAL_ADMIN", "AUTHORITY"].includes(selectedRole)) {
+    if (!["HOSPITAL_ADMIN", "INVENTORY_STAFF", "NURSE", "DOCTOR"].includes(selectedRole)) {
         throw new ApiError(400, "Invalid registration role");
     }
 
-    if (selectedRole === "HOSPITAL_ADMIN" && !hospitalId) {
+    if (selectedRole !== "SUPER_ADMIN" && !normalizedHospitalId) {
         throw new ApiError(
             400,
             "Hospital ID is required for hospital admin"
         );
     }
 
-    const existingUser = await User.findOne({ email });
+    const hospital = selectedRole === "SUPER_ADMIN"
+        ? null
+        : await Hospital.findOne({ hospitalId: normalizedHospitalId });
+
+    if (selectedRole !== "SUPER_ADMIN" && !hospital) {
+        throw new ApiError(404, "Hospital ID not found");
+    }
+
+    const existingUser = await User.findOne({
+        hospitalId: hospital?._id,
+        userId
+    });
 
     if (existingUser) {
         throw new ApiError(
             409,
-            "User with this email already exists"
+            "User with this ID already exists"
         );
     }
 
     const user = await User.create({
-        name,
-        email,
+        userId,
         password,
         role: selectedRole,
-        hospitalId:
-            selectedRole === "HOSPITAL_ADMIN"
-                ? hospitalId
-                : null
+        hospitalId: hospital?._id || null
     });
 
     const createdUser = await User
@@ -81,16 +89,25 @@ export const registerUser = asyncHandler(async (req, res) => {
 });
 
 export const loginUser = asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
+    const { userId, password, hospitalId } = req.body;
+    const normalizedHospitalId = hospitalId?.trim().toUpperCase();
 
-    if (!email || !password) {
+    if (!userId || !password) {
         throw new ApiError(
             400,
-            "Email and password are required"
+            "User ID and password are required"
         );
     }
 
-    const user = await User.findOne({ email });
+    const hospital = normalizedHospitalId
+        ? await Hospital.findOne({ hospitalId: normalizedHospitalId })
+        : null;
+
+    const user = await User.findOne(
+        hospital
+            ? { hospitalId: hospital._id, userId }
+            : { userId, role: "SUPER_ADMIN" }
+    );
 
     if (!user) {
         throw new ApiError(
@@ -165,4 +182,29 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
                 "Current user fetched successfully"
             )
         );
+});
+
+export const getHospitalStaff = asyncHandler(async (req, res) => {
+    const staff = await User.find({ hospitalId: req.user.hospitalId })
+        .select("-password")
+        .sort({ userId: 1 });
+    return res.status(200).json(new ApiResponse(200, staff, "Hospital staff retrieved successfully"));
+});
+
+export const createHospitalStaff = asyncHandler(async (req, res) => {
+    const { userId, password, role } = req.body;
+    const allowedRoles = ["INVENTORY_STAFF", "NURSE", "DOCTOR"];
+    if (!userId || !password || !allowedRoles.includes(role)) {
+        throw new ApiError(400, "User ID, password, and a valid staff role are required");
+    }
+    const existing = await User.findOne({ hospitalId: req.user.hospitalId, userId });
+    if (existing) throw new ApiError(409, "This user ID already exists in your hospital");
+    const staff = await User.create({ userId, password, role, hospitalId: req.user.hospitalId });
+    return res.status(201).json(new ApiResponse(201, await User.findById(staff._id).select("-password"), "Staff account created successfully"));
+});
+
+export const removeHospitalStaff = asyncHandler(async (req, res) => {
+    const staff = await User.findOneAndDelete({ _id: req.params.id, hospitalId: req.user.hospitalId, role: { $in: ["INVENTORY_STAFF", "NURSE", "DOCTOR"] } });
+    if (!staff) throw new ApiError(404, "Staff account not found");
+    return res.status(200).json(new ApiResponse(200, {}, "Staff account removed successfully"));
 });

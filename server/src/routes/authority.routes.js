@@ -13,7 +13,7 @@ router
     .route("/dashboard")
     .get(
         verifyJWT,
-        authorizeRoles("AUTHORITY"),
+        authorizeRoles("SUPER_ADMIN"),
         getAuthorityDashboard
     );
 

@@ -20,7 +20,7 @@ router
     .route("/")
     .post(
         verifyJWT,
-        authorizeRoles("AUTHORITY"),
+        authorizeRoles("SUPER_ADMIN"),
         createTransfer
     );
 
@@ -31,7 +31,7 @@ router
     .get(
         verifyJWT,
         authorizeRoles(
-            "AUTHORITY",
+            "SUPER_ADMIN",
             "HOSPITAL_ADMIN"
         ),
         getTransfers
@@ -44,7 +44,7 @@ router
     .get(
         verifyJWT,
         authorizeRoles(
-            "AUTHORITY",
+            "SUPER_ADMIN",
             "HOSPITAL_ADMIN"
         ),
         getTransferById
@@ -56,7 +56,7 @@ router
     .route("/:id/approve")
     .patch(
         verifyJWT,
-        authorizeRoles("AUTHORITY"),
+        authorizeRoles("SUPER_ADMIN"),
         approveTransfer
     );
 
@@ -66,7 +66,7 @@ router
     .route("/:id/reject")
     .patch(
         verifyJWT,
-        authorizeRoles("AUTHORITY"),
+        authorizeRoles("SUPER_ADMIN"),
         rejectTransfer
     );
 
@@ -76,7 +76,7 @@ router
     .route("/:id/complete")
     .patch(
         verifyJWT,
-        authorizeRoles("AUTHORITY"),
+        authorizeRoles("SUPER_ADMIN"),
         completeTransfer
     );
 

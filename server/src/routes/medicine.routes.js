@@ -2,6 +2,8 @@ import { Router } from "express";
 
 import {
     createMedicine,
+    getMedicines,
+    getInventory,
     updateInventory,
     logConsumption,
     getMedicinePredictions
@@ -17,23 +19,23 @@ const router = Router();
 // Authority only
 router
     .route("/")
+    .get(verifyJWT, getMedicines)
     .post(
         verifyJWT,
-        authorizeRoles("AUTHORITY"),
+        authorizeRoles("SUPER_ADMIN", "INVENTORY_STAFF"),
         createMedicine
     );
 
-
-// Hospital medicine inventory
-// Hospital Admin / Authority
 router
     .route("/inventory")
+    .get(
+        verifyJWT,
+        authorizeRoles("SUPER_ADMIN", "HOSPITAL_ADMIN", "INVENTORY_STAFF"),
+        getInventory
+    )
     .post(
         verifyJWT,
-        authorizeRoles(
-            "HOSPITAL_ADMIN",
-            "AUTHORITY"
-        ),
+        authorizeRoles("SUPER_ADMIN", "HOSPITAL_ADMIN", "INVENTORY_STAFF"),
         updateInventory
     );
 
@@ -44,18 +46,14 @@ router
     .route("/consumption")
     .post(
         verifyJWT,
-        authorizeRoles("HOSPITAL_ADMIN"),
+        authorizeRoles("HOSPITAL_ADMIN", "INVENTORY_STAFF"),
         logConsumption
     );
 
-
-// ML medicine demand predictions
+// ML predictions remain read-only and outside the current portal workflow.
 router
     .route("/predictions/:hospitalId")
-    .get(
-        verifyJWT,
-        getMedicinePredictions
-    );
+    .get(verifyJWT, getMedicinePredictions);
 
 
 export default router;

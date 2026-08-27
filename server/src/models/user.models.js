@@ -3,17 +3,9 @@ import bcrypt from "bcrypt";
 
 const userSchema = new Schema(
     {
-        name: {
+        userId: {
             type: String,
             required: true,
-            trim: true
-        },
-
-        email: {
-            type: String,
-            required: true,
-            unique: true,
-            lowercase: true,
             trim: true
         },
 
@@ -24,8 +16,14 @@ const userSchema = new Schema(
 
         role: {
             type: String,
-            enum: ["PATIENT", "HOSPITAL_ADMIN", "AUTHORITY"],
-            default: "PATIENT",
+            enum: [
+                "SUPER_ADMIN",
+                "HOSPITAL_ADMIN",
+                "INVENTORY_STAFF",
+                "NURSE",
+                "DOCTOR"
+            ],
+            default: "NURSE",
             required: true
         },
 
@@ -38,8 +36,19 @@ const userSchema = new Schema(
     { timestamps: true }
 );
 
+userSchema.index(
+    { hospitalId: 1, userId: 1 },
+    { unique: true }
+);
+
 userSchema.pre("save", async function (next) {
     if (!this.isModified("password")) return;
+
+    if (
+        this.password.startsWith("$2b$") ||
+        this.password.startsWith("$2a$") ||
+        this.password.startsWith("$2y$")
+    ) return;
 
     this.password = await bcrypt.hash(this.password, 10);
 });

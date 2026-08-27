@@ -14,7 +14,7 @@ router
   .route("/occupancy")
   .post(
     verifyJWT,
-    authorizeRoles("HOSPITAL_ADMIN", "AUTHORITY"),
+    authorizeRoles("HOSPITAL_ADMIN", "NURSE", "DOCTOR", "SUPER_ADMIN"),
     logBedOccupancy
   );
 

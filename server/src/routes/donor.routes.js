@@ -87,7 +87,7 @@ router
     .route("/matches/:id")
     .patch(
         verifyJWT,
-        authorizeRoles("AUTHORITY"),
+        authorizeRoles("SUPER_ADMIN"),
         updateMatchStatus
     );
 

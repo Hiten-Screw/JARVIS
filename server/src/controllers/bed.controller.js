@@ -59,7 +59,7 @@ export const logBedOccupancy = asyncHandler(async (req, res) => {
     }
 
     if (
-        req.user.role === "HOSPITAL_ADMIN" &&
+        ["HOSPITAL_ADMIN", "NURSE", "DOCTOR"].includes(req.user.role) &&
         req.user.hospitalId?.toString() !== hospitalId
     ) {
         throw new ApiError(

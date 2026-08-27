@@ -8,14 +8,19 @@ import bedRouter from "./routes/bed.routes.js";
 import medicineRouter from "./routes/medicine.routes.js";
 import hospitalSearchRouter from "./routes/hospitalSearch.routes.js";
 import resourceTransferRouter from "./routes/resourceTransfer.routes.js";
-import donorRouter from "./routes/donor.routes.js";
 import authorityRouter from "./routes/authority.routes.js";
+import hospitalRegistrationRouter from "./routes/hospitalRegistration.routes.js";
+import bloodRouter from "./routes/blood.routes.js";
 
 const app = express();
 
+const allowedOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
+    : ["http://localhost:5173", "https://localhost:5173", "http://127.0.0.1:5173", "https://127.0.0.1:5173"];
+
 app.use(
     cors({
-        origin: process.env.CORS_ORIGIN,
+                origin: allowedOrigins,
         credentials: true
     })
 );
@@ -32,7 +37,8 @@ app.use("/api/v1/beds", bedRouter);
 app.use("/api/v1/medicines", medicineRouter);
 app.use("/api/v1/search", hospitalSearchRouter);
 app.use("/api/v1/transfers", resourceTransferRouter);
-app.use("/api/v1/donors", donorRouter);
 app.use("/api/v1/authority", authorityRouter);
+app.use("/api/v1/hospital-registration", hospitalRegistrationRouter);
+app.use("/api/v1/blood", bloodRouter);
 
 export { app };
