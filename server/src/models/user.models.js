@@ -2,42 +2,55 @@ import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcrypt";
 
 const userSchema = new Schema(
-  {
-    hospitalId: {
-      type: String,
-      required: function () {
-        return this.role !== "SUPER_ADMIN";
-      },
-      index: true,
+    {
+        userId: {
+            type: String,
+            required: true,
+            trim: true
+        },
+
+        password: {
+            type: String,
+            required: true
+        },
+
+        role: {
+            type: String,
+            enum: [
+                "SUPER_ADMIN",
+                "HOSPITAL_ADMIN",
+                "INVENTORY_STAFF",
+                "NURSE",
+                "DOCTOR"
+            ],
+            default: "NURSE",
+            required: true
+        },
+
+        hospitalId: {
+            type: Schema.Types.ObjectId,
+            ref: "Hospital",
+            default: null
+        }
     },
-    userId: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-    role: {
-      type: String,
-      enum: ["SUPER_ADMIN", "HOSPITAL_ADMIN", "NURSE", "PHARMACIST", "DOCTOR"],
-      default: "NURSE",
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-  },
-  { timestamps: true }
+    { timestamps: true }
 );
 
-userSchema.index({ hospitalId: 1, userId: 1 }, { unique: true });
+userSchema.index(
+    { hospitalId: 1, userId: 1 },
+    { unique: true }
+);
 
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
+    if (!this.isModified("password")) return;
+
+    if (
+        this.password.startsWith("$2b$") ||
+        this.password.startsWith("$2a$") ||
+        this.password.startsWith("$2y$")
+    ) return;
+
+    this.password = await bcrypt.hash(this.password, 10);
 });
 
 export const User = mongoose.model("User", userSchema);

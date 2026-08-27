@@ -1,18 +1,55 @@
 // client/src/App.jsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "./components/Navbar";
 import MapCanvas from "./components/MapCanvas";
 import FeatureGrid from "./components/FeatureGrid";
 import HospitalDrawer from "./components/HospitalDrawer";
 import AiThoughtStream from "./components/AiThoughtStream";
 import StaffLoginModal from "./components/StaffLoginModal";
-import { MOCK__HOSPITALS } from "./data/mockData";
+import StaffPortal from "./components/StaffPortal";
+import { api } from "./services/api";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRadius] = useState("10 km");
-  const hospitals = MOCK__HOSPITALS;
+  const [hospitals, setHospitals] = useState([]);
+  useEffect(() => {
+    api.hospitals().then(async (items) => setHospitals(await Promise.all(items.map(async (hospital) => {
+      const [resources, blood] = await Promise.all([
+        api.resources(hospital.hospitalId),
+        api.bloodStock(hospital.hospitalId)
+      ]);
+      const resource = (type) => resources.find((item) => item.resourceType === type);
+      const general = resource("generalBed");
+      const icu = resource("icuBed");
+      const oxygen = resource("oxygen");
+      return {
+      ...hospital,
+      id: hospital._id,
+      coordinates: [hospital.location.coordinates[1], hospital.location.coordinates[0]],
+      phone: hospital.contact,
+      availableBeds: general?.available || 0,
+      totalBeds: general?.total || 0,
+      icuAvailable: icu?.available || 0,
+      oxygenBeds: oxygen?.available || 0,
+      bloodStock: Object.fromEntries(blood.stock.map((item) => [item.bloodGroup, item.currentStock]))
+      };
+    })))).catch(() => setHospitals([]));
+  }, []);
+  const categoryData = {
+    beds: hospitals,
+    blood: hospitals,
+    nearest: hospitals,
+    outbreak: [],
+    resources: [],
+    medicines: [],
+    predictions: [],
+    transfers: [],
+    donors: [],
+    organs: [],
+    authority: []
+  };
 
   // Staff Auth & Modal States
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -34,6 +71,9 @@ export default function App() {
   };
 
   return (
+    staffSession ? (
+      <StaffPortal session={staffSession} onExit={handleLogout} />
+    ) : (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
       <Navbar 
         searchQuery={searchQuery}  
@@ -60,7 +100,8 @@ export default function App() {
             <HospitalDrawer
               activeTab={activeTab}
               onBack={() => setActiveTab(null)}
-              hospitals={MOCK__HOSPITALS}
+              records={categoryData[activeTab] || hospitals}
+              medicineCatalog={[]}
             />
           )}
         </div>
@@ -77,5 +118,6 @@ export default function App() {
         }}
       />
     </div>
+    )
   );
 }

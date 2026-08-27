@@ -2,6 +2,14 @@ import mongoose, { Schema } from "mongoose";
 
 const hospitalSchema = new Schema(
     {
+        hospitalId: {
+            type: String,
+            required: true,
+            unique: true,
+            trim: true,
+            uppercase: true
+        },
+
         name: {
             type: String,
             required: true,

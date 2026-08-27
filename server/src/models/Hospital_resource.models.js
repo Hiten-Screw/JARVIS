@@ -16,8 +16,7 @@ const hospitalResourceSchema = new Schema(
                 "icuBed",
                 "emergencyBed",
                 "ventilator",
-                "oxygen",
-                "blood"
+                "oxygen"
             ]
         },
 

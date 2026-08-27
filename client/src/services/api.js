@@ -1,0 +1,54 @@
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+
+export async function apiRequest(path, options = {}) {
+  let response;
+  const savedSession = localStorage.getItem("staffSession");
+  let token = null;
+  if (savedSession) {
+    try {
+      token = JSON.parse(savedSession).token || null;
+    } catch {
+      localStorage.removeItem("staffSession");
+    }
+  }
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {})
+      },
+      ...options
+    });
+  } catch {
+    throw new Error(`Cannot connect to the server at ${API_BASE}`);
+  }
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.message || "Request failed");
+  return payload.data;
+}
+
+export const api = {
+  login: (body) => apiRequest("/auth/login", { method: "POST", body: JSON.stringify(body) }),
+  hospitals: () => apiRequest("/hospitals"),
+  submitHospitalRegistration: (body) => apiRequest("/hospital-registration", { method: "POST", body: JSON.stringify(body) }),
+  registrationRequests: () => apiRequest("/hospital-registration"),
+  approveRegistration: (id) => apiRequest(`/hospital-registration/${id}/approve`, { method: "PATCH" }),
+  rejectRegistration: (id, reason) => apiRequest(`/hospital-registration/${id}/reject`, { method: "PATCH", body: JSON.stringify({ reason }) }),
+  createMedicine: (body) => apiRequest("/medicines", { method: "POST", body: JSON.stringify(body) }),
+  medicines: () => apiRequest("/medicines"),
+  inventory: () => apiRequest("/medicines/inventory"),
+  updateInventory: (body) => apiRequest("/medicines/inventory", { method: "POST", body: JSON.stringify(body) }),
+  resources: (hospitalId) => apiRequest(`/resources/${hospitalId}`),
+  updateResource: (hospitalId, resourceType, body) => apiRequest(`/resources/${hospitalId}/${resourceType}`, { method: "PATCH", body: JSON.stringify(body) }),
+  bloodStock: (hospitalId) => apiRequest(`/blood/${hospitalId}`),
+  updateBloodStock: (hospitalId, body) => apiRequest(`/blood/${hospitalId}`, { method: "PATCH", body: JSON.stringify(body) }),
+  useBloodStock: (hospitalId, body) => apiRequest(`/blood/${hospitalId}/use`, { method: "POST", body: JSON.stringify(body) }),
+  occupancy: (hospitalId) => apiRequest(`/beds/occupancy-history/${hospitalId}`),
+  clinicalResourceOccupancy: (hospitalId, resourceType, available) => apiRequest(`/resources/${hospitalId}/${resourceType}/occupancy`, { method: "PATCH", body: JSON.stringify({ available }) }),
+  updateOccupancy: (body) => apiRequest("/beds/occupancy", { method: "POST", body: JSON.stringify(body) }),
+  staff: () => apiRequest("/auth/staff"),
+  createStaff: (body) => apiRequest("/auth/staff", { method: "POST", body: JSON.stringify(body) }),
+  removeStaff: (id) => apiRequest(`/auth/staff/${id}`, { method: "DELETE" })
+};
