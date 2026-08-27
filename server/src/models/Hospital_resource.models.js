@@ -29,7 +29,13 @@ const hospitalResourceSchema = new Schema(
         available: {
             type: Number,
             required: true,
-            min: 0
+            min: 0,
+            validate: {
+                validator: function (value) {
+                    return value <= this.total;
+                },
+                message: "Available resources cannot exceed total resources"
+            }
         }
     },
     {
