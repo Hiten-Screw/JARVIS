@@ -1,0 +1,77 @@
+Patient_State,Condition,patient_count
+Maharastra,Fractured Arm,30
+Delhi,Prostate Cancer,27
+Chandigarh,Osteoarthritis,26
+Himachal Pradesh,Fractured Arm,26
+Delhi,Respiratory Infection,25
+Kerala,Heart Attack,25
+Tripura,Stroke,25
+Kerala,Allergic Reaction,24
+Madhya Pradesh,Allergic Reaction,24
+Sikkim,Hypertension,24
+Gujarat,Fractured Leg,24
+Bihar,Childbirth,23
+Jammu & Kashmir,Respiratory Infection,23
+Kerala,Heart Disease,23
+West Bengal,Heart Attack,22
+Manipur,Stroke,21
+Haryana,Kidney Stones,21
+Meghalaya,Cancer,21
+Odisha,Osteoarthritis,20
+Puducherry,Diabetes,20
+Tamil Nadu,Heart Disease,20
+Punjab,Heart Attack,19
+Puducherry,Fractured Leg,19
+Goa,Diabetes,19
+Mizoram,Cancer,19
+Punjab,Heart Disease,18
+Karnataka,Appendicitis,18
+Tamil Nadu,Osteoarthritis,18
+Delhi,Kidney Stones,17
+Andhra Pradesh,Appendicitis,17
+Mizoram,Stroke,17
+Himachal Pradesh,Fractured Leg,17
+Assam,Cancer,17
+Uttar Pradesh,Childbirth,16
+Assam,Prostate Cancer,16
+Goa,Hypertension,15
+Kerala,Prostate Cancer,14
+Kerala,Appendicitis,14
+Kerala,Diabetes,13
+Gujarat,Kidney Stones,13
+Punjab,Hypertension,13
+Tamil Nadu,Appendicitis,12
+Meghalaya,Respiratory Infection,11
+Arunachal Pradesh,Hypertension,9
+Jharkhand,Childbirth,9
+Karnataka,Allergic Reaction,9
+Haryana,Fractured Arm,9
+Rajasthan,Kidney Stones,8
+Tamil Nadu,Allergic Reaction,7
+Madhya Pradesh,Childbirth,7
+Rajasthan,Childbirth,7
+Tamil Nadu,Diabetes,6
+Puducherry,Respiratory Infection,6
+Punjab,Kidney Stones,6
+Karnataka,Prostate Cancer,5
+Kerala,Hypertension,5
+Chandigarh,Diabetes,5
+Nagaland,Cancer,4
+Maharastra,Fractured Leg,4
+Assam,Stroke,3
+Odisha,Childbirth,3
+Maharastra,Prostate Cancer,3
+West Bengal,Appendicitis,3
+Punjab,Cancer,3
+Punjab,Appendicitis,2
+Punjab,Fractured Leg,2
+Andhra Pradesh,Diabetes,2
+Himachal Pradesh,Heart Disease,2
+Kerala,Cancer,2
+Andhra Pradesh,Heart Disease,1
+Delhi,Allergic Reaction,1
+Gujarat ,Fractured Leg,1
+Maharastra,Allergic Reaction,1
+Jammu & Kashmir,Heart Attack,1
+Punjab,Fractured Arm,1
+Nagaland,Heart Disease,1
