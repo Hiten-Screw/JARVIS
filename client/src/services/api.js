@@ -51,5 +51,8 @@ export const api = {
   updateOccupancy: (body) => apiRequest("/beds/occupancy", { method: "POST", body: JSON.stringify(body) }),
   staff: () => apiRequest("/auth/staff"),
   createStaff: (body) => apiRequest("/auth/staff", { method: "POST", body: JSON.stringify(body) }),
-  removeStaff: (id) => apiRequest(`/auth/staff/${id}`, { method: "DELETE" })
+  removeStaff: (id) => apiRequest(`/auth/staff/${id}`, { method: "DELETE" }),
+  recommendHospitals: (body) => apiRequest("/ml/recommend", { method: "POST", body: JSON.stringify(body) }),
+  outbreakSurveillance: () => apiRequest("/ml/outbreak"),
+  bedForecasts: (body = {}) => apiRequest("/ml/forecasts", { method: "POST", body: JSON.stringify(body) })
 };

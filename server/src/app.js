@@ -11,6 +11,7 @@ import resourceTransferRouter from "./routes/resourceTransfer.routes.js";
 import authorityRouter from "./routes/authority.routes.js";
 import hospitalRegistrationRouter from "./routes/hospitalRegistration.routes.js";
 import bloodRouter from "./routes/blood.routes.js";
+import mlRouter from "./routes/ml.routes.js";
 
 const app = express();
 
@@ -20,7 +21,7 @@ const allowedOrigins = process.env.CORS_ORIGIN
 
 app.use(
     cors({
-                origin: allowedOrigins,
+        origin: allowedOrigins,
         credentials: true
     })
 );
@@ -40,5 +41,6 @@ app.use("/api/v1/transfers", resourceTransferRouter);
 app.use("/api/v1/authority", authorityRouter);
 app.use("/api/v1/hospital-registration", hospitalRegistrationRouter);
 app.use("/api/v1/blood", bloodRouter);
+app.use("/api/v1/ml", mlRouter);
 
 export { app };
