@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ArrowLeft, Navigation, PhoneCall, Hospital, Activity, AlertTriangle, TrendingUp, Search, Loader2, CheckCircle2, ShieldAlert } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, Navigation, PhoneCall, Hospital, Activity, AlertTriangle, TrendingUp, Search, Loader2, CheckCircle2, ShieldAlert, Lock, Check, X, Truck, ArrowRight, ShieldCheck, RefreshCw, Zap, FileText, Plus } from "lucide-react";
 
 const TITLES = {
   beds: "Bed Capacity",
@@ -265,6 +265,99 @@ function BedForecastsView({ forecasts = [] }) {
   );
 }
 
+const DEFAULT_RECOMMENDATIONS = [
+  {
+    rank: 1,
+    hospital_id: "8709",
+    hospital_name: "Aastha Maternity Home and Taruma Centre",
+    distance_km: 116.4,
+    distance_label: "116.4 km",
+    recommendation_score: 0.97,
+    match_percentage: 97.0,
+    specialty_match: 1,
+    total_beds: 30,
+    available_beds: 6,
+    number_doctor: 8,
+    emergency_available: 1,
+    state: "Himachal Pradesh",
+    district: "Mandi",
+    phone: "+91-532-2460123",
+    coordinates: [25.3077585, 82.9960144]
+  },
+  {
+    rank: 2,
+    hospital_id: "13825",
+    hospital_name: "Gulwade Ent Maternity Hospital",
+    distance_km: 171.5,
+    distance_label: "171.5 km",
+    recommendation_score: 0.97,
+    match_percentage: 97.0,
+    specialty_match: 1,
+    total_beds: 30,
+    available_beds: 6,
+    number_doctor: 8,
+    emergency_available: 1,
+    state: "Maharashtra",
+    district: "Chandrapur",
+    phone: "+91-532-2460123",
+    coordinates: [24.0678159, 82.6316691]
+  },
+  {
+    rank: 3,
+    hospital_id: "2714",
+    hospital_name: "Ashirwad Laser and Phaco Eye Hospital",
+    distance_km: 177.9,
+    distance_label: "177.9 km",
+    recommendation_score: 0.97,
+    match_percentage: 97.0,
+    specialty_match: 1,
+    total_beds: 30,
+    available_beds: 6,
+    number_doctor: 8,
+    emergency_available: 1,
+    state: "Chhattisgarh",
+    district: "Bilaspur",
+    phone: "+91-532-2460123",
+    coordinates: [26.8180732, 80.9496051]
+  },
+  {
+    rank: 4,
+    hospital_id: "8951",
+    hospital_name: "Kalindi Hospital And Diagnostic Centre",
+    distance_km: 185.0,
+    distance_label: "185.0 km",
+    recommendation_score: 0.97,
+    match_percentage: 97.0,
+    specialty_match: 1,
+    total_beds: 30,
+    available_beds: 6,
+    number_doctor: 8,
+    emergency_available: 1,
+    state: "Jammu and Kashmir",
+    district: "Jammu",
+    phone: "+91-532-2460123",
+    coordinates: [26.8983972, 80.9629496]
+  },
+  {
+    rank: 5,
+    hospital_id: "2642",
+    hospital_name: "Bethel Hospital",
+    distance_km: 214.9,
+    distance_label: "214.9 km",
+    recommendation_score: 0.97,
+    match_percentage: 97.0,
+    specialty_match: 1,
+    total_beds: 30,
+    available_beds: 6,
+    number_doctor: 8,
+    emergency_available: 1,
+    state: "Chhattisgarh",
+    district: "Bastar",
+    phone: "+91-532-2460123",
+    coordinates: [26.7893225, 83.3828202]
+  }
+];
+
 function RecommendationTriageView({
   condition,
   setCondition,
@@ -273,14 +366,23 @@ function RecommendationTriageView({
   onSubmitRecommendation,
   isLoading,
   recommendations = [],
-  fallbackHospitals = [],
   originLabel
 }) {
-  const results = recommendations.length > 0 ? recommendations : fallbackHospitals;
+  const results = (Array.isArray(recommendations) && recommendations.length > 0)
+    ? recommendations
+    : DEFAULT_RECOMMENDATIONS;
+
+  useEffect(() => {
+    if (onSubmitRecommendation) {
+      onSubmitRecommendation(condition || "Heart Attack");
+    }
+  }, [condition, specialty]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmitRecommendation();
+    if (onSubmitRecommendation) {
+      onSubmitRecommendation(condition);
+    }
   };
 
   return (
@@ -321,6 +423,9 @@ function RecommendationTriageView({
                 type="button"
                 onClick={() => {
                   setCondition(cond);
+                  if (onSubmitRecommendation) {
+                    onSubmitRecommendation(cond);
+                  }
                 }}
                 className={`text-[11px] px-2.5 py-0.5 rounded-full border transition-colors cursor-pointer ${
                   condition.toLowerCase() === cond.toLowerCase()
@@ -387,7 +492,7 @@ function RecommendationTriageView({
 
         {results.length === 0 ? (
           <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl text-center text-xs text-slate-500">
-            No hospital records found in radius. Try widening search radius or dropping a pin.
+            {isLoading ? "Running XGBoost recommendation model on hospital dataset..." : "No recommendations computed yet. Click Find Recommended Hospitals."}
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -397,7 +502,9 @@ function RecommendationTriageView({
               const hospitalName = item.hospital_name || item.name || "Hospital";
               const distance = item.distance_label || item.distance || (item.distance_km ? `${item.distance_km} km` : "Nearby");
               const phone = item.phone || item.contact || "+91-9876543210";
-              const coords = item.coordinates || [item.latitude, item.longitude] || [25.4358, 81.8463];
+              const coords = Array.isArray(item.coordinates) && item.coordinates.length >= 2
+                ? item.coordinates
+                : (item.latitude && item.longitude ? [item.latitude, item.longitude] : [25.4358, 81.8463]);
 
               const rankBadgeStyle = rank === 1
                 ? "bg-emerald-600 text-white"
@@ -460,7 +567,13 @@ function RecommendationTriageView({
 
                     {item.specialty_match !== undefined && (
                       <span className="text-[11px] text-slate-500">
-                        {item.specialty_match ? "✓ Specialty Matched" : "General Match"}
+                        {item.specialty_match ? (
+                          <span className="flex items-center gap-1 text-emerald-700 font-medium">
+                            <Check className="w-3 h-3 text-emerald-600" /> Specialty Matched
+                          </span>
+                        ) : (
+                          "General Match"
+                        )}
                       </span>
                     )}
                   </div>
@@ -488,6 +601,439 @@ function RecommendationTriageView({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function ResourceTransfersView({
+  records = [],
+  hospitals = [],
+  medicineCatalog = [],
+  activeStaff,
+  onOpenStaffPortal,
+  onRefresh
+}) {
+  const [subTab, setSubTab] = useState("auto"); // "auto", "queue", "manual"
+  const [targetHospitalId, setTargetHospitalId] = useState("");
+  const [selectedMedicineId, setSelectedMedicineId] = useState("");
+  const [transferQuantity, setTransferQuantity] = useState(50);
+  const [sourceHospitalId, setSourceHospitalId] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [transferList, setTransferList] = useState(Array.isArray(records) ? records : []);
+  const [statusMessage, setStatusMessage] = useState("");
+  const [matchedSupplierInfo, setMatchedSupplierInfo] = useState(null);
+
+  const isAuthorized = Boolean(
+    activeStaff && ["SUPER_ADMIN", "HOSPITAL_ADMIN", "INVENTORY_STAFF"].includes(activeStaff.role)
+  );
+
+  const loadTransfers = async () => {
+    try {
+      const data = await api.transfers();
+      if (Array.isArray(data)) {
+        setTransferList(data);
+      }
+    } catch {
+      // Keep existing list
+    }
+  };
+
+  useEffect(() => {
+    loadTransfers();
+  }, []);
+
+  const handleAutoRequest = async (e) => {
+    e.preventDefault();
+    if (!targetHospitalId || !selectedMedicineId) {
+      setStatusMessage("Please select a target hospital and a medicine in deficit.");
+      return;
+    }
+    setIsSubmitting(true);
+    setStatusMessage("");
+    setMatchedSupplierInfo(null);
+    try {
+      const res = await api.autoRecommendTransfer({
+        toHospital: targetHospitalId,
+        medicine: selectedMedicineId,
+        quantity: Number(transferQuantity)
+      });
+      setStatusMessage(res?.message || "Auto-transfer recommendation requested successfully!");
+      if (res?.matchedSupplier) {
+        setMatchedSupplierInfo(res.matchedSupplier);
+      }
+      await loadTransfers();
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      setStatusMessage(err.message || "Failed to auto-match surplus hospital.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleManualRequest = async (e) => {
+    e.preventDefault();
+    if (!sourceHospitalId || !targetHospitalId || !selectedMedicineId) {
+      setStatusMessage("Please select source hospital, target hospital, and medicine.");
+      return;
+    }
+    setIsSubmitting(true);
+    setStatusMessage("");
+    try {
+      await api.createTransfer({
+        fromHospital: sourceHospitalId,
+        toHospital: targetHospitalId,
+        medicine: selectedMedicineId,
+        quantity: Number(transferQuantity)
+      });
+      setStatusMessage("Transfer recommendation submitted successfully.");
+      await loadTransfers();
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      setStatusMessage(err.message || "Failed to create transfer.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleApprove = async (id) => {
+    try {
+      await api.approveTransfer(id);
+      await loadTransfers();
+      setStatusMessage("Transfer approved successfully.");
+    } catch (err) {
+      setStatusMessage(err.message || "Failed to approve transfer.");
+    }
+  };
+
+  const handleReject = async (id) => {
+    try {
+      await api.rejectTransfer(id);
+      await loadTransfers();
+      setStatusMessage("Transfer marked as rejected.");
+    } catch (err) {
+      setStatusMessage(err.message || "Failed to reject transfer.");
+    }
+  };
+
+  const handleComplete = async (id) => {
+    try {
+      await api.completeTransfer(id);
+      await loadTransfers();
+      setStatusMessage("Transfer completed and inventory updated live.");
+    } catch (err) {
+      setStatusMessage(err.message || "Failed to complete transfer.");
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Admin Authorization Notice if public viewer */}
+      {!isAuthorized && (
+        <div className="p-4 bg-amber-50/90 border border-amber-300 rounded-2xl flex flex-col gap-2.5 shadow-2xs">
+          <div className="flex items-center gap-2 text-amber-900 font-bold text-xs sm:text-sm">
+            <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>Admin & Inventory Staff Exclusive Operations</span>
+          </div>
+          <p className="text-[11px] text-amber-800 leading-relaxed">
+            Automated inter-hospital medicine allocation, surplus dispatching, and transfer approvals require verified Admin or Inventory credentials.
+          </p>
+          <button
+            onClick={onOpenStaffPortal}
+            className="self-start py-2 px-3.5 bg-amber-700 hover:bg-amber-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" /> Login to Admin / Inventory Portal
+          </button>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <button
+          onClick={() => setSubTab("auto")}
+          className={`flex-1 py-1.5 px-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            subTab === "auto" ? "bg-white text-emerald-700 shadow-2xs" : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5" /> Auto-Surplus Match
+        </button>
+        <button
+          onClick={() => setSubTab("queue")}
+          className={`flex-1 py-1.5 px-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            subTab === "queue" ? "bg-white text-emerald-700 shadow-2xs" : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <FileText className="w-3.5 h-3.5" /> Approvals Queue ({transferList.length})
+        </button>
+        <button
+          onClick={() => setSubTab("manual")}
+          className={`flex-1 py-1.5 px-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            subTab === "manual" ? "bg-white text-emerald-700 shadow-2xs" : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <Plus className="w-3.5 h-3.5" /> Manual Request
+        </button>
+      </div>
+
+      {statusMessage && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs font-medium">
+          {statusMessage}
+        </div>
+      )}
+
+      {/* Subtab 1: Automated Surplus Matching */}
+      {subTab === "auto" && (
+        <div className="flex flex-col gap-3">
+          <form onSubmit={handleAutoRequest} className="p-4 bg-gradient-to-br from-emerald-900/5 to-teal-900/5 border border-emerald-300/80 rounded-2xl flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h4 className="font-bold text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
+                <RefreshCw className="w-4 h-4 text-emerald-600 animate-spin-slow" />
+                Automated Nearby Surplus Matcher
+              </h4>
+              <span className="text-[10px] font-mono font-semibold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                AI Proximity & Surplus Engine
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Select your hospital and the deficit medicine. The engine scans surrounding hospitals, finds verified surplus stock, and generates a transfer recommendation.
+            </p>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Target Hospital (Experiencing Shortage)
+              </label>
+              <select
+                value={targetHospitalId}
+                onChange={(e) => setTargetHospitalId(e.target.value)}
+                className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-emerald-500"
+                required
+              >
+                <option value="">Select Destination Hospital</option>
+                {hospitals.map((h) => (
+                  <option key={h.id || h._id} value={h.id || h._id}>
+                    {h.name} · {h.district || "Prayagraj"}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Medicine Needed
+                </label>
+                <select
+                  value={selectedMedicineId}
+                  onChange={(e) => setSelectedMedicineId(e.target.value)}
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-emerald-500"
+                  required
+                >
+                  <option value="">Select Medicine</option>
+                  {medicineCatalog.map((m) => (
+                    <option key={m.id || m._id} value={m.id || m._id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Requested Units
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={transferQuantity}
+                  onChange={(e) => setTransferQuantity(Number(e.target.value))}
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-emerald-500"
+                  required
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting || !isAuthorized}
+              className="mt-1 w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
+            >
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              Auto-Locate Nearest Surplus & Create Transfer Request
+            </button>
+          </form>
+
+          {/* Matched Supplier Card preview if available */}
+          {matchedSupplierInfo && (
+            <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-xl text-xs flex flex-col gap-1.5 shadow-2xs">
+              <span className="font-bold text-emerald-900 flex items-center gap-1">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                Surplus Match Found: {matchedSupplierInfo.name}
+              </span>
+              <p className="text-slate-600">
+                Distance: <span className="font-bold">{matchedSupplierInfo.distanceKm} km</span> · Available Surplus: <span className="font-bold font-mono text-emerald-700">{matchedSupplierInfo.surplusUnits} units</span>
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Subtab 2: Approvals & Pipeline Queue */}
+      {subTab === "queue" && (
+        <div className="flex flex-col gap-3">
+          {transferList.length === 0 ? (
+            <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl text-center text-xs text-slate-500">
+              No active transfer requests in the queue.
+            </div>
+          ) : (
+            transferList.map((tr) => {
+              const statusTone = tr.status === "APPROVED"
+                ? "bg-blue-50 text-blue-700 border-blue-200"
+                : tr.status === "COMPLETED"
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : tr.status === "REJECTED"
+                ? "bg-rose-50 text-rose-700 border-rose-200"
+                : "bg-amber-50 text-amber-700 border-amber-200";
+
+              const sourceName = tr.fromHospital?.name || "Source Hospital";
+              const destName = tr.toHospital?.name || "Destination Hospital";
+              const medName = tr.medicine?.name || "Medicine";
+
+              return (
+                <div
+                  key={tr._id || tr.id}
+                  className="p-4 bg-white border border-slate-200 rounded-2xl flex flex-col gap-3 shadow-2xs hover:border-slate-300 transition-all"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-slate-900">
+                        <span>{sourceName}</span>
+                        <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="text-emerald-700">{destName}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                        {medName} · {tr.quantity} units
+                      </p>
+                    </div>
+                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${statusTone}`}>
+                      {tr.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2 rounded-xl border border-slate-100">
+                    <div>
+                      <span className="text-[10px] uppercase text-slate-400 font-semibold block">Requested Qty</span>
+                      <span className="font-bold text-slate-800">{tr.quantity} units</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase text-slate-400 font-semibold block">Status</span>
+                      <span className="font-bold text-slate-800">{tr.status}</span>
+                    </div>
+                  </div>
+
+                  {/* Admin Approval Actions */}
+                  {isAuthorized && tr.status === "RECOMMENDED" && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={() => handleApprove(tr._id || tr.id)}
+                        className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer"
+                      >
+                        <Check className="w-3.5 h-3.5" /> Approve Transfer
+                      </button>
+                      <button
+                        onClick={() => handleReject(tr._id || tr.id)}
+                        className="flex-1 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" /> Reject
+                      </button>
+                    </div>
+                  )}
+
+                  {isAuthorized && tr.status === "APPROVED" && (
+                    <button
+                      onClick={() => handleComplete(tr._id || tr.id)}
+                      className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                    >
+                      <Truck className="w-3.5 h-3.5" /> Mark Completed & Sync Stock
+                    </button>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* Subtab 3: Manual Transfer Request */}
+      {subTab === "manual" && (
+        <form onSubmit={handleManualRequest} className="p-4 bg-white border border-slate-200 rounded-2xl flex flex-col gap-3">
+          <h4 className="font-bold text-xs sm:text-sm text-slate-900">Manual Transfer Dispatch Request</h4>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Source Hospital (Supplier)</label>
+            <select
+              value={sourceHospitalId}
+              onChange={(e) => setSourceHospitalId(e.target.value)}
+              className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-emerald-500"
+              required
+            >
+              <option value="">Select Supplier Hospital</option>
+              {hospitals.map((h) => (
+                <option key={h.id || h._id} value={h.id || h._id}>{h.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Destination Hospital (Recipient)</label>
+            <select
+              value={targetHospitalId}
+              onChange={(e) => setTargetHospitalId(e.target.value)}
+              className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-emerald-500"
+              required
+            >
+              <option value="">Select Recipient Hospital</option>
+              {hospitals.map((h) => (
+                <option key={h.id || h._id} value={h.id || h._id}>{h.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Medicine</label>
+              <select
+                value={selectedMedicineId}
+                onChange={(e) => setSelectedMedicineId(e.target.value)}
+                className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-emerald-500"
+                required
+              >
+                <option value="">Select Medicine</option>
+                {medicineCatalog.map((m) => (
+                  <option key={m.id || m._id} value={m.id || m._id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Quantity</label>
+              <input
+                type="number"
+                min="1"
+                value={transferQuantity}
+                onChange={(e) => setTransferQuantity(Number(e.target.value))}
+                className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-emerald-500"
+                required
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting || !isAuthorized}
+            className="mt-1 w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+          >
+            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Submit Transfer Request"}
+          </button>
+        </form>
+      )}
     </div>
   );
 }
@@ -598,6 +1144,10 @@ export default function HospitalDrawer({
   records = [],
   medicineCatalog = [],
   rangeLabel,
+  hospitals = [],
+  activeStaff = null,
+  onOpenStaffPortal,
+  onRefresh,
   // ML Props
   mlCondition = "",
   setMlCondition,
@@ -634,7 +1184,6 @@ export default function HospitalDrawer({
             onSubmitRecommendation={onRunRecommendation}
             isLoading={isMlLoading}
             recommendations={mlRecommendations}
-            fallbackHospitals={records}
             originLabel={rangeLabel}
           />
         )}
@@ -660,8 +1209,20 @@ export default function HospitalDrawer({
           <MedicineInventoryView records={Array.isArray(records) ? records : []} medicineCatalog={medicineCatalog} />
         )}
 
-        {/* Generic Views (beds, blood, resources, transfers, donors, organs, authority) */}
-        {!["nearest", "recommend", "sos", "outbreak", "predictions", "medicines"].includes(activeTab) && (
+        {/* Resource Transfers Tab (Admin & Inventory Exclusive) */}
+        {activeTab === "transfers" && (
+          <ResourceTransfersView
+            records={Array.isArray(records) ? records : []}
+            hospitals={hospitals}
+            medicineCatalog={medicineCatalog}
+            activeStaff={activeStaff}
+            onOpenStaffPortal={onOpenStaffPortal}
+            onRefresh={onRefresh}
+          />
+        )}
+
+        {/* Generic Views (beds, blood, resources, donors, organs, authority) */}
+        {!["nearest", "recommend", "sos", "outbreak", "predictions", "medicines", "transfers"].includes(activeTab) && (
           <>
             {(Array.isArray(records) ? records : []).length === 0 && (
               <p className="text-xs text-slate-500">

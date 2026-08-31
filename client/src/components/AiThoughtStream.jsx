@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Bot, Cpu, Sparkles, Activity, ShieldAlert } from "lucide-react";
+import { Bot, Cpu, Sparkles, Activity, ShieldAlert, X } from "lucide-react";
 
 export default function AiThoughtStream() {
   const [isOpen, setIsOpen] = useState(false);
@@ -48,7 +48,7 @@ export default function AiThoughtStream() {
               onClick={() => setIsOpen(false)}
               className="text-slate-400 hover:text-slate-600 font-bold p-1 cursor-pointer"
             >
-              ✕
+              <X className="w-4 h-4" />
             </button>
           </div>
           <div className="bg-slate-900 rounded-xl p-3 font-mono text-[11px] text-slate-200 flex flex-col gap-2 max-h-56 overflow-y-auto border border-slate-800 shadow-inner">

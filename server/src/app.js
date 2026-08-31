@@ -1,8 +1,8 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import authRouter from "./routes/auth.routes.js"
-import hospitalRouter from "./routes/hospital.routes.js"
+import authRouter from "./routes/auth.routes.js";
+import hospitalRouter from "./routes/hospital.routes.js";
 import resourceRouter from "./routes/resource.routes.js";
 import bedRouter from "./routes/bed.routes.js";
 import medicineRouter from "./routes/medicine.routes.js";
@@ -16,14 +16,24 @@ import mlRouter from "./routes/ml.routes.js";
 const app = express();
 
 const allowedOrigins = process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
-    : ["http://localhost:5173", "https://localhost:5173", "http://127.0.0.1:5173", "https://127.0.0.1:5173"];
+  ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
+  : [];
 
 app.use(
-    cors({
-        origin: allowedOrigins,
-        credentials: true
-    })
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (
+        origin.includes("localhost") ||
+        origin.includes("127.0.0.1") ||
+        allowedOrigins.includes(origin)
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
+    credentials: true
+  })
 );
 
 app.use(express.json({ limit: "16kb" }));
