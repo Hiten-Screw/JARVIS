@@ -12,6 +12,7 @@ import authorityRouter from "./routes/authority.routes.js";
 import hospitalRegistrationRouter from "./routes/hospitalRegistration.routes.js";
 import bloodRouter from "./routes/blood.routes.js";
 import mlRouter from "./routes/ml.routes.js";
+import agentRouter from "./routes/agent.routes.js";
 
 const app = express();
 
@@ -52,5 +53,6 @@ app.use("/api/v1/authority", authorityRouter);
 app.use("/api/v1/hospital-registration", hospitalRegistrationRouter);
 app.use("/api/v1/blood", bloodRouter);
 app.use("/api/v1/ml", mlRouter);
+app.use("/api/v1/agent", agentRouter);
 
 export { app };

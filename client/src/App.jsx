@@ -312,7 +312,20 @@ export default function App() {
           </div>
         </main>
 
-        <AiThoughtStream />
+        <AiThoughtStream
+          onSelectAction={(action) => {
+            if (action === "triage" || action === "sos") {
+              setActiveTab("nearest");
+              handleRunRecommendation();
+            } else if (action === "forecast") {
+              setActiveTab("predictions");
+            } else if (action === "outbreak") {
+              setActiveTab("outbreak");
+            } else if (action === "map") {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          }}
+        />
         <StaffLoginModal
           isOpen={isLoginOpen}
           onClose={() => setIsLoginOpen(false)}
