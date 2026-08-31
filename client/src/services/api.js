@@ -54,5 +54,11 @@ export const api = {
   removeStaff: (id) => apiRequest(`/auth/staff/${id}`, { method: "DELETE" }),
   recommendHospitals: (body) => apiRequest("/ml/recommend", { method: "POST", body: JSON.stringify(body) }),
   outbreakSurveillance: () => apiRequest("/ml/outbreak"),
-  bedForecasts: (body = {}) => apiRequest("/ml/forecasts", { method: "POST", body: JSON.stringify(body) })
+  bedForecasts: (body = {}) => apiRequest("/ml/forecasts", { method: "POST", body: JSON.stringify(body) }),
+  transfers: () => apiRequest("/transfers"),
+  createTransfer: (body) => apiRequest("/transfers", { method: "POST", body: JSON.stringify(body) }),
+  autoRecommendTransfer: (body) => apiRequest("/transfers/auto-recommend", { method: "POST", body: JSON.stringify(body) }),
+  approveTransfer: (id) => apiRequest(`/transfers/${id}/approve`, { method: "PATCH" }),
+  rejectTransfer: (id) => apiRequest(`/transfers/${id}/reject`, { method: "PATCH" }),
+  completeTransfer: (id) => apiRequest(`/transfers/${id}/complete`, { method: "PATCH" })
 };

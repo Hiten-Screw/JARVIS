@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ClipboardList, Hospital, Package, Plus, ShieldCheck, Trash2, Users, Check, X } from "lucide-react";
+import { ClipboardList, Hospital, Package, Plus, ShieldCheck, Trash2, Users, Check, X, ArrowLeft, ArrowRight } from "lucide-react";
 import { api } from "../services/api";
 
 const ROLE_LABELS = {
@@ -46,24 +46,206 @@ function InventoryPortalCards({ session }) {
   const [inventory, setInventory] = useState([]);
   const [resources, setResources] = useState([]);
   const [blood, setBlood] = useState({ stock: [], total: 0, available: 0 });
+  const [transfers, setTransfers] = useState([]);
+  const [hospitals, setHospitals] = useState([]);
   const [medicine, setMedicine] = useState({ name: "", genericName: "", category: "", manufacturer: "", unit: "tablet" });
   const [stock, setStock] = useState({ medicineId: "", quantity: 0, minimumStock: 0, expiryDate: "", unitPrice: 0 });
   const [resource, setResource] = useState({ resourceType: "generalBed", total: 0, available: 0 });
   const [bloodForm, setBloodForm] = useState({ bloodGroup: "A+", currentStock: 0 });
+  const [transferMedicineId, setTransferMedicineId] = useState("");
+  const [transferQuantity, setTransferQuantity] = useState(50);
   const [message, setMessage] = useState("");
 
   const loadMedicine = async () => { try { const [catalog, current] = await Promise.all([api.medicines(), api.inventory()]); setMedicines(catalog); setInventory(current); } catch (error) { setMessage(error.message); } };
   const loadResources = async () => { try { const [currentResources, currentBlood] = await Promise.all([api.resources(session.hospitalId), api.bloodStock(session.hospitalId)]); setResources(currentResources); setBlood(currentBlood); const current = currentResources.find((item) => item.resourceType === resource.resourceType); if (current) setResource({ resourceType: current.resourceType, total: current.total, available: current.available }); } catch (error) { setMessage(error.message); } };
-  const openView = async (nextView) => { setView(nextView); if (nextView === "medicine") await loadMedicine(); if (nextView === "resources") await loadResources(); };
+  const loadTransfers = async () => { try { const [tList, hList, mCatalog] = await Promise.all([api.transfers(), api.hospitals(), api.medicines()]); setTransfers(Array.isArray(tList) ? tList : []); setHospitals(Array.isArray(hList) ? hList : []); setMedicines(Array.isArray(mCatalog) ? mCatalog : []); } catch (error) { setMessage(error.message); } };
+
+  const openView = async (nextView) => {
+    setView(nextView);
+    if (nextView === "medicine") await loadMedicine();
+    if (nextView === "resources") await loadResources();
+    if (nextView === "transfers") await loadTransfers();
+  };
+
   const addMedicine = async (event) => { event.preventDefault(); try { await api.createMedicine(medicine); setMedicine({ name: "", genericName: "", category: "", manufacturer: "", unit: "tablet" }); await loadMedicine(); } catch (error) { setMessage(error.message); } };
   const updateStock = async (event) => { event.preventDefault(); try { await api.updateInventory({ ...stock, hospitalId: session.hospitalId }); await loadMedicine(); setMessage("Medicine inventory updated."); } catch (error) { setMessage(error.message); } };
   const updateResource = async (event) => { event.preventDefault(); try { const saved = await api.updateResource(session.hospitalId, resource.resourceType, resource); setResources((current) => [...current.filter((item) => item.resourceType !== saved.resourceType), saved]); setResource({ resourceType: saved.resourceType, total: saved.total, available: saved.available }); setMessage("Resource totals updated."); } catch (error) { setMessage(error.message); } };
   const updateBlood = async (event) => { event.preventDefault(); try { await api.updateBloodStock(session.hospitalId, bloodForm); await loadResources(); setMessage("Blood group stock updated."); } catch (error) { setMessage(error.message); } };
+
+  const handleAutoSurplusTransfer = async (e) => {
+    e.preventDefault();
+    if (!transferMedicineId) { setMessage("Please choose a medicine with deficit."); return; }
+    try {
+      const targetHospital = hospitals.find((h) => h.hospitalId === session.hospitalId || h._id === session.hospitalId) || hospitals[0];
+      if (!targetHospital) throw new Error("Hospital record not found");
+      const res = await api.autoRecommendTransfer({
+        toHospital: targetHospital._id || targetHospital.id,
+        medicine: transferMedicineId,
+        quantity: Number(transferQuantity)
+      });
+      setMessage(res?.message || "Auto-transfer recommendation requested successfully.");
+      await loadTransfers();
+    } catch (error) { setMessage(error.message); }
+  };
+
+  const handleApprove = async (id) => { try { await api.approveTransfer(id); await loadTransfers(); setMessage("Transfer approved."); } catch (err) { setMessage(err.message); } };
+  const handleReject = async (id) => { try { await api.rejectTransfer(id); await loadTransfers(); setMessage("Transfer rejected."); } catch (err) { setMessage(err.message); } };
+  const handleComplete = async (id) => { try { await api.completeTransfer(id); await loadTransfers(); setMessage("Transfer completed & stock synced."); } catch (err) { setMessage(err.message); } };
+
   const selectedResource = resources.find((item) => item.resourceType === resource.resourceType);
 
-  if (!view) return <><PortalHeader icon={Package} title="Inventory operations" description={`Choose an inventory area for ${session.hospitalId}.`} />{message && <p className="mb-3 text-xs text-rose-700">{message}</p>}<div className="grid sm:grid-cols-2 gap-5"><button onClick={() => openView("medicine")} className="text-left border border-slate-200 rounded-xl bg-white p-5 hover:border-emerald-400"><ClipboardList className="w-6 h-6 text-emerald-600 mb-4" /><h2 className="font-bold text-base">Medicine inventory</h2><p className="text-xs text-slate-500 mt-2">Add medicines and update quantity, minimum stock, price, and expiry.</p></button><button onClick={() => openView("resources")} className="text-left border border-slate-200 rounded-xl bg-white p-5 hover:border-emerald-400"><Hospital className="w-6 h-6 text-emerald-600 mb-4" /><h2 className="font-bold text-base">Hospital resources</h2><p className="text-xs text-slate-500 mt-2">Increase or decrease beds, oxygen, ventilators, and blood-group stock.</p></button></div></>;
+  if (!view) return (
+    <>
+      <PortalHeader icon={Package} title="Inventory operations" description={`Choose an inventory area for ${session.hospitalId}.`} />
+      {message && <p className="mb-3 text-xs text-rose-700">{message}</p>}
+      <div className="grid sm:grid-cols-3 gap-4">
+        <button onClick={() => openView("medicine")} className="text-left border border-slate-200 rounded-xl bg-white p-4 hover:border-emerald-400">
+          <ClipboardList className="w-6 h-6 text-emerald-600 mb-3" />
+          <h2 className="font-bold text-sm">Medicine inventory</h2>
+          <p className="text-xs text-slate-500 mt-1">Register medicines, update quantities & alert levels.</p>
+        </button>
+        <button onClick={() => openView("resources")} className="text-left border border-slate-200 rounded-xl bg-white p-4 hover:border-emerald-400">
+          <Hospital className="w-6 h-6 text-emerald-600 mb-3" />
+          <h2 className="font-bold text-sm">Hospital resources</h2>
+          <p className="text-xs text-slate-500 mt-1">Manage beds, oxygen, ventilators, and blood stock.</p>
+        </button>
+        <button onClick={() => openView("transfers")} className="text-left border border-slate-200 rounded-xl bg-white p-4 hover:border-emerald-400">
+          <Package className="w-6 h-6 text-orange-600 mb-3" />
+          <h2 className="font-bold text-sm">Resource transfers</h2>
+          <p className="text-xs text-slate-500 mt-1">Auto-match surplus from nearby hospitals & approve transfers.</p>
+        </button>
+      </div>
+    </>
+  );
 
-  return <><button onClick={() => setView(null)} className="text-xs font-semibold text-emerald-700 mb-4">Back to inventory areas</button>{view === "medicine" ? <><PortalHeader icon={ClipboardList} title="Medicine inventory" description="Register a medicine or update an existing hospital stock record." /><div className="grid lg:grid-cols-2 gap-5"><form onSubmit={addMedicine} className="border border-slate-200 rounded-xl p-4 bg-white flex flex-col gap-3"><h2 className="font-bold text-sm">Register new medicine</h2>{[["name", "Medicine name"], ["genericName", "Generic name"], ["category", "Category"], ["manufacturer", "Manufacturer"]].map(([key, label]) => <label key={key} className="text-xs font-semibold">{label}<input value={medicine[key]} onChange={(event) => setMedicine({ ...medicine, [key]: event.target.value })} className="mt-1 border border-slate-200 rounded-lg p-2.5 w-full text-xs" required /></label>)}<select value={medicine.unit} onChange={(event) => setMedicine({ ...medicine, unit: event.target.value })} className="border border-slate-200 rounded-lg p-2.5 text-xs"><option>tablet</option><option>capsule</option><option>bottle</option><option>vial</option><option>injection</option><option>strip</option></select><button className="bg-slate-900 text-white rounded-lg p-2.5 text-xs font-semibold">Add medicine</button></form><form onSubmit={updateStock} className="border border-slate-200 rounded-xl p-4 bg-white flex flex-col gap-3"><h2 className="font-bold text-sm">Update existing medicine</h2><select value={stock.medicineId} onChange={(event) => setStock({ ...stock, medicineId: event.target.value })} className="border border-slate-200 rounded-lg p-2.5 text-xs" required><option value="">Select medicine</option>{medicines.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}</select><label className="text-xs font-semibold">Current quantity<input type="number" min="0" value={stock.quantity} onChange={(event) => setStock({ ...stock, quantity: Number(event.target.value) })} className="mt-1 border border-slate-200 rounded-lg p-2.5 w-full text-xs" required /></label><label className="text-xs font-semibold">Minimum stock alert level<input type="number" min="0" value={stock.minimumStock} onChange={(event) => setStock({ ...stock, minimumStock: Number(event.target.value) })} className="mt-1 border border-slate-200 rounded-lg p-2.5 w-full text-xs" required /></label><label className="text-xs font-semibold">Unit price<input type="number" min="0" step="0.01" value={stock.unitPrice} onChange={(event) => setStock({ ...stock, unitPrice: Number(event.target.value) })} className="mt-1 border border-slate-200 rounded-lg p-2.5 w-full text-xs" /></label><label className="text-xs font-semibold">Expiry date<input type="date" value={stock.expiryDate} onChange={(event) => setStock({ ...stock, expiryDate: event.target.value })} className="mt-1 border border-slate-200 rounded-lg p-2.5 w-full text-xs" required /></label><button className="bg-emerald-600 text-white rounded-lg p-2.5 text-xs font-semibold">Save inventory update</button></form></div><div className="mt-5 flex flex-col gap-2">{inventory.map((item) => <div key={item._id} className="border border-slate-200 rounded-xl bg-white p-3 flex justify-between text-xs"><span className="font-semibold">{item.medicineId?.name}</span><span>{item.quantity} units · price {item.unitPrice ?? "not set"} · min {item.minimumStock}</span></div>)}</div></> : <><PortalHeader icon={Hospital} title="Hospital resources" description="Select a resource to see its current total and available count." />{message && <p className="mb-3 text-xs text-emerald-700">{message}</p>}<form onSubmit={updateResource} className="border border-slate-200 rounded-xl bg-white p-4 flex flex-col gap-3"><label className="text-xs font-semibold">Resource type<select value={resource.resourceType} onChange={(event) => { const next = resources.find((item) => item.resourceType === event.target.value); setResource({ resourceType: event.target.value, total: next?.total || 0, available: next?.available || 0 }); }} className="mt-1 border border-slate-200 rounded-lg p-2.5 w-full text-xs"><option>generalBed</option><option>icuBed</option><option>emergencyBed</option><option>ventilator</option><option>oxygen</option></select></label><p className="text-xs text-slate-500">Current: {selectedResource ? `${selectedResource.available} available of ${selectedResource.total} total` : "No record yet (0 total, 0 available)"}</p><div className="grid sm:grid-cols-2 gap-3"><label className="text-xs font-semibold">Total<input type="number" min="0" value={resource.total} onChange={(event) => setResource({ ...resource, total: Number(event.target.value) })} className="mt-1 border border-slate-200 rounded-lg p-2.5 w-full text-xs" /></label><label className="text-xs font-semibold">Available<input type="number" min="0" value={resource.available} onChange={(event) => setResource({ ...resource, available: Number(event.target.value) })} className="mt-1 border border-slate-200 rounded-lg p-2.5 w-full text-xs" /></label></div><button className="bg-emerald-600 text-white rounded-lg p-2.5 text-xs font-semibold">Save resource totals</button></form><form onSubmit={updateBlood} className="border border-slate-200 rounded-xl bg-white p-4 mt-4 flex flex-col gap-3"><h2 className="font-bold text-sm">Blood group stock</h2><select value={bloodForm.bloodGroup} onChange={(event) => { const current = blood.stock.find((item) => item.bloodGroup === event.target.value); setBloodForm({ bloodGroup: event.target.value, currentStock: current?.currentStock || 0 }); }} className="border border-slate-200 rounded-lg p-2.5 text-xs">{["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((group) => <option key={group}>{group}</option>)}</select><p className="text-xs text-slate-500">Current total and available blood units: {blood.total}</p><label className="text-xs font-semibold">Current stock<input type="number" min="0" value={bloodForm.currentStock} onChange={(event) => setBloodForm({ ...bloodForm, currentStock: Number(event.target.value) })} className="mt-1 border border-slate-200 rounded-lg p-2.5 w-full text-xs" /></label><button className="bg-rose-600 text-white rounded-lg p-2.5 text-xs font-semibold">Save blood stock</button></form></>}{message && <p className="mt-3 text-xs text-emerald-700">{message}</p>}</>;
+  return (
+    <>
+      <button onClick={() => setView(null)} className="text-xs font-semibold text-emerald-700 mb-4 flex items-center gap-1 cursor-pointer">
+        <ArrowLeft className="w-3.5 h-3.5" /> Back to inventory areas
+      </button>
+      {view === "medicine" && (
+        <>
+          <PortalHeader icon={ClipboardList} title="Medicine inventory" description="Register a medicine or update an existing hospital stock record." />
+          <div className="grid lg:grid-cols-2 gap-5">
+            <form onSubmit={addMedicine} className="border border-slate-200 rounded-xl p-4 bg-white flex flex-col gap-3">
+              <h2 className="font-bold text-sm">Register new medicine</h2>
+              {[["name", "Medicine name"], ["genericName", "Generic name"], ["category", "Category"], ["manufacturer", "Manufacturer"]].map(([key, label]) => (
+                <label key={key} className="text-xs font-semibold">{label}<input value={medicine[key]} onChange={(event) => setMedicine({ ...medicine, [key]: event.target.value })} className="mt-1 border border-slate-200 rounded-lg p-2.5 w-full text-xs" required /></label>
+              ))}
+              <select value={medicine.unit} onChange={(event) => setMedicine({ ...medicine, unit: event.target.value })} className="border border-slate-200 rounded-lg p-2.5 text-xs"><option>tablet</option><option>capsule</option><option>bottle</option><option>vial</option><option>injection</option><option>strip</option></select>
+              <button className="bg-slate-900 text-white rounded-lg p-2.5 text-xs font-semibold">Add medicine</button>
+            </form>
+            <form onSubmit={updateStock} className="border border-slate-200 rounded-xl p-4 bg-white flex flex-col gap-3">
+              <h2 className="font-bold text-sm">Update existing medicine</h2>
+              <select value={stock.medicineId} onChange={(event) => setStock({ ...stock, medicineId: event.target.value })} className="border border-slate-200 rounded-lg p-2.5 text-xs" required><option value="">Select medicine</option>{medicines.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}</select>
+              <label className="text-xs font-semibold">Current quantity<input type="number" min="0" value={stock.quantity} onChange={(event) => setStock({ ...stock, quantity: Number(event.target.value) })} className="mt-1 border border-slate-200 rounded-lg p-2.5 w-full text-xs" required /></label>
+              <label className="text-xs font-semibold">Minimum stock alert level<input type="number" min="0" value={stock.minimumStock} onChange={(event) => setStock({ ...stock, minimumStock: Number(event.target.value) })} className="mt-1 border border-slate-200 rounded-lg p-2.5 w-full text-xs" required /></label>
+              <label className="text-xs font-semibold">Unit price<input type="number" min="0" step="0.01" value={stock.unitPrice} onChange={(event) => setStock({ ...stock, unitPrice: Number(event.target.value) })} className="mt-1 border border-slate-200 rounded-lg p-2.5 w-full text-xs" /></label>
+              <label className="text-xs font-semibold">Expiry date<input type="date" value={stock.expiryDate} onChange={(event) => setStock({ ...stock, expiryDate: event.target.value })} className="mt-1 border border-slate-200 rounded-lg p-2.5 w-full text-xs" required /></label>
+              <button className="bg-emerald-600 text-white rounded-lg p-2.5 text-xs font-semibold">Save inventory update</button>
+            </form>
+          </div>
+          <div className="mt-5 flex flex-col gap-2">
+            {inventory.map((item) => (
+              <div key={item._id} className="border border-slate-200 rounded-xl bg-white p-3 flex justify-between text-xs">
+                <span className="font-semibold">{item.medicineId?.name}</span>
+                <span>{item.quantity} units · price {item.unitPrice ?? "not set"} · min {item.minimumStock}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {view === "resources" && (
+        <>
+          <PortalHeader icon={Hospital} title="Hospital resources" description="Select a resource to see its current total and available count." />
+          {message && <p className="mb-3 text-xs text-emerald-700">{message}</p>}
+          <form onSubmit={updateResource} className="border border-slate-200 rounded-xl bg-white p-4 flex flex-col gap-3">
+            <label className="text-xs font-semibold">Resource type
+              <select value={resource.resourceType} onChange={(event) => { const next = resources.find((item) => item.resourceType === event.target.value); setResource({ resourceType: event.target.value, total: next?.total || 0, available: next?.available || 0 }); }} className="mt-1 border border-slate-200 rounded-lg p-2.5 w-full text-xs">
+                <option>generalBed</option><option>icuBed</option><option>emergencyBed</option><option>ventilator</option><option>oxygen</option>
+              </select>
+            </label>
+            <p className="text-xs text-slate-500">Current: {selectedResource ? `${selectedResource.available} available of ${selectedResource.total} total` : "No record yet (0 total, 0 available)"}</p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <label className="text-xs font-semibold">Total<input type="number" min="0" value={resource.total} onChange={(event) => setResource({ ...resource, total: Number(event.target.value) })} className="mt-1 border border-slate-200 rounded-lg p-2.5 w-full text-xs" /></label>
+              <label className="text-xs font-semibold">Available<input type="number" min="0" value={resource.available} onChange={(event) => setResource({ ...resource, available: Number(event.target.value) })} className="mt-1 border border-slate-200 rounded-lg p-2.5 w-full text-xs" /></label>
+            </div>
+            <button className="bg-emerald-600 text-white rounded-lg p-2.5 text-xs font-semibold">Save resource totals</button>
+          </form>
+          <form onSubmit={updateBlood} className="border border-slate-200 rounded-xl bg-white p-4 mt-4 flex flex-col gap-3">
+            <h2 className="font-bold text-sm">Blood group stock</h2>
+            <select value={bloodForm.bloodGroup} onChange={(event) => { const current = blood.stock.find((item) => item.bloodGroup === event.target.value); setBloodForm({ bloodGroup: event.target.value, currentStock: current?.currentStock || 0 }); }} className="border border-slate-200 rounded-lg p-2.5 text-xs">{["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((group) => <option key={group}>{group}</option>)}</select>
+            <p className="text-xs text-slate-500">Current total and available blood units: {blood.total}</p>
+            <label className="text-xs font-semibold">Current stock<input type="number" min="0" value={bloodForm.currentStock} onChange={(event) => setBloodForm({ ...bloodForm, currentStock: Number(event.target.value) })} className="mt-1 border border-slate-200 rounded-lg p-2.5 w-full text-xs" /></label>
+            <button className="bg-rose-600 text-white rounded-lg p-2.5 text-xs font-semibold">Save blood stock</button>
+          </form>
+        </>
+      )}
+
+      {view === "transfers" && (
+        <>
+          <PortalHeader icon={Package} title="Resource transfers & automated surplus dispatch" description="Auto-detect surplus medicine stock from surrounding hospitals and approve inter-hospital transfers." />
+          {message && <p className="mb-3 text-xs text-emerald-700">{message}</p>}
+          <div className="grid lg:grid-cols-[1fr_1.2fr] gap-5">
+            <form onSubmit={handleAutoSurplusTransfer} className="border border-emerald-300 rounded-xl p-4 bg-emerald-50/40 flex flex-col gap-3">
+              <h2 className="font-bold text-sm text-slate-800 flex items-center gap-1.5">
+                <Package className="w-4 h-4 text-emerald-600" /> Auto-Request from Nearest Surplus Hospital
+              </h2>
+              <p className="text-xs text-slate-600">
+                Auto-scans regional hospitals for verified surplus above minimum reserve levels.
+              </p>
+              <label className="text-xs font-semibold">Medicine in Shortage
+                <select value={transferMedicineId} onChange={(e) => setTransferMedicineId(e.target.value)} className="mt-1 w-full border border-slate-200 rounded-lg p-2 text-xs bg-white" required>
+                  <option value="">Select Deficit Medicine</option>
+                  {medicines.map((m) => <option key={m._id} value={m._id}>{m.name}</option>)}
+                </select>
+              </label>
+              <label className="text-xs font-semibold">Requested Units
+                <input type="number" min="1" value={transferQuantity} onChange={(e) => setTransferQuantity(Number(e.target.value))} className="mt-1 w-full border border-slate-200 rounded-lg p-2 text-xs bg-white" required />
+              </label>
+              <button className="bg-emerald-600 text-white rounded-lg p-2.5 text-xs font-semibold flex items-center justify-center gap-1">
+                Auto-Match Surplus & Request Transfer
+              </button>
+            </form>
+
+            <div className="flex flex-col gap-3">
+              <h3 className="font-bold text-xs text-slate-700 uppercase tracking-wider">Transfer Approvals & Pipeline ({transfers.length})</h3>
+              {transfers.length === 0 ? (
+                <div className="border border-slate-200 rounded-xl p-4 bg-white text-xs text-slate-500">No transfer records found.</div>
+              ) : (
+                transfers.map((tr) => (
+                  <div key={tr._id} className="border border-slate-200 rounded-xl p-3.5 bg-white flex flex-col gap-2 shadow-2xs">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                          <span>{tr.fromHospital?.name || "Source"}</span>
+                          <ArrowRight className="w-3 h-3 text-slate-400" />
+                          <span className="text-emerald-700">{tr.toHospital?.name || "Destination"}</span>
+                        </p>
+                        <p className="text-[11px] text-slate-500 font-mono">{tr.medicine?.name} · {tr.quantity} units</p>
+                      </div>
+                      <Status tone={tr.status === "APPROVED" ? "amber" : tr.status === "COMPLETED" ? "emerald" : tr.status === "REJECTED" ? "rose" : "amber"}>{tr.status}</Status>
+                    </div>
+                    {tr.status === "RECOMMENDED" && (
+                      <div className="flex gap-2 mt-1">
+                        <button onClick={() => handleApprove(tr._id)} className="px-2.5 py-1 bg-emerald-600 text-white text-xs font-semibold rounded-md">Approve</button>
+                        <button onClick={() => handleReject(tr._id)} className="px-2.5 py-1 bg-rose-50 text-rose-700 text-xs font-semibold rounded-md">Reject</button>
+                      </div>
+                    )}
+                    {tr.status === "APPROVED" && (
+                      <button onClick={() => handleComplete(tr._id)} className="py-1 px-3 bg-blue-600 text-white text-xs font-semibold rounded-md">Mark Completed & Sync Stock</button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+      {message && <p className="mt-3 text-xs text-emerald-700">{message}</p>}
+    </>
+  );
 }
 
 /* function InventoryPortalLegacy({ session }) {

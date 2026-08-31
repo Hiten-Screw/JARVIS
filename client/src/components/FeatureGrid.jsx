@@ -8,8 +8,8 @@ const FEATURES = [
   ["blood", "Emergency Blood Bank", "Locate verified donors and blood units sorted by nearest storage.", Droplet, "Units Stocked", "rose"],
   ["resources", "Hospital Resources", "Review every tracked resource and its current clinical availability.", ShieldCheck, "Live Inventory", "cyan"],
   ["medicines", "Medicine Inventory", "Check stock, minimum levels, expiry dates, and medicine categories.", Pill, "Stock Watch", "violet"],
+  ["transfers", "Resource Transfers", "Automated nearby surplus discovery & inter-hospital medicine allocation queue.", RefreshCw, "Admin & Inventory", "orange"],
   /*
-  ["transfers", "Resource Transfers", "Track recommended, approved, rejected, and completed medicine transfers.", RefreshCw, "Coordination", "orange"],
   ["donors", "Blood Donor Network", "Browse donor eligibility, blood groups, status, and proximity.", HeartPulse, "Verified Network", "rose"],
   ["organs", "Organ Match Registry", "Review organ availability, compatibility scores, and match status.", FlaskConical, "Match Review", "teal"],
   ["authority", "Authority Dashboard", "System-wide hospital, stock, transfer, and critical-risk analytics.", Brain, "Command View", "slate"]

@@ -1,6 +1,6 @@
 // client/src/components/StaffLoginModal.jsx
 import { useState } from "react";
-import { Lock, Hospital, UserCheck, ShieldCheck, ArrowRight } from "lucide-react";
+import { Lock, Hospital, UserCheck, ShieldCheck, ArrowRight, ArrowLeft, Plus, X } from "lucide-react";
 import { CircleMarker, MapContainer, TileLayer, useMapEvents } from "react-leaflet";
 import { api } from "../services/api";
 
@@ -107,9 +107,9 @@ export default function StaffLoginModal({ isOpen, onClose, onLoginSuccess }) {
       <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full max-h-[92vh] overflow-y-auto p-6 sm:p-8 flex flex-col gap-5 relative">
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer"
+          className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 font-bold p-1 cursor-pointer"
         >
-          ✕
+          <X className="w-4 h-4" />
         </button>
 
         <div>
@@ -207,41 +207,19 @@ export default function StaffLoginModal({ isOpen, onClose, onLoginSuccess }) {
           <button
             type="button"
             onClick={() => setIsRegisteringHospital(!isRegisteringHospital)}
-            className="text-emerald-700 font-semibold hover:underline cursor-pointer"
+            className="text-emerald-700 font-semibold hover:underline cursor-pointer flex items-center gap-1"
           >
-            {isRegisteringHospital ? "← Back to Staff Login" : "+ Register New Hospital"}
+            {isRegisteringHospital ? (
+              <>
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to Staff Login
+              </>
+            ) : (
+              <>
+                <Plus className="w-3.5 h-3.5" /> Register New Hospital
+              </>
+            )}
           </button>
         </div>
-
-        {/* Quick Fill for Fast Demoing
-        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 flex flex-col gap-1.5">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">
-            Demo Fast Fill
-          </span>
-          <div className="grid grid-cols-3 gap-1.5">
-            <button
-              onClick={() => handleFastFill("ADMIN")}
-              type="button"
-              className="py-1 px-2 bg-white border border-slate-200 rounded text-[11px] font-medium text-slate-700 hover:bg-slate-100 cursor-pointer text-center"
-            >
-              Admin
-            </button>
-            <button
-              onClick={() => handleFastFill("NURSE")}
-              type="button"
-              className="py-1 px-2 bg-white border border-slate-200 rounded text-[11px] font-medium text-slate-700 hover:bg-slate-100 cursor-pointer text-center"
-            >
-              Nurse
-            </button>
-            <button
-              onClick={() => handleFastFill("PHARM")}
-              type="button"
-              className="py-1 px-2 bg-white border border-slate-200 rounded text-[11px] font-medium text-slate-700 hover:bg-slate-100 cursor-pointer text-center"
-            >
-              Pharmacy
-            </button>
-          </div>
-        </div> */}
       </div>
     </div>
   );

@@ -111,6 +111,20 @@ export default function App() {
     api.bedForecasts()
       .then((data) => setBedForecasts(Array.isArray(data) ? data : []))
       .catch(() => setBedForecasts([]));
+
+    // Prefetch ML recommendations from dataset
+    api.recommendHospitals({
+      latitude: 25.4358,
+      longitude: 81.8463,
+      specialty: "",
+      condition: "Heart Attack",
+      state: "Uttar Pradesh"
+    }).then((res) => {
+      const recs = res?.recommendations || (Array.isArray(res) ? res : []);
+      if (Array.isArray(recs) && recs.length > 0) {
+        setMlRecommendations(recs);
+      }
+    }).catch(() => {});
   }, []);
 
   const catalogFromStock = medicineRecords.map((record) => ({ id: record.medicineId, name: record.medicineName }));
@@ -126,10 +140,12 @@ export default function App() {
       return { ...record, distance: hospital?.distance || formatDistance(hospital?.distanceKm) };
     });
 
+  const [transfers, setTransfers] = useState([]);
+
   // Handler to run XGBoost ML recommendation on dataset
   const handleRunRecommendation = useCallback(async (overrideCondition) => {
     setIsMlLoading(true);
-    const cond = overrideCondition || mlCondition;
+    const cond = overrideCondition || mlCondition || "Heart Attack";
     try {
       const payload = {
         latitude: origin[0],
@@ -141,7 +157,9 @@ export default function App() {
 
       const res = await api.recommendHospitals(payload);
       const recs = res?.recommendations || (Array.isArray(res) ? res : []);
-      setMlRecommendations(recs);
+      if (Array.isArray(recs) && recs.length > 0) {
+        setMlRecommendations(recs);
+      }
     } catch (err) {
       console.warn("ML Recommendation error:", err);
     } finally {
@@ -162,12 +180,12 @@ export default function App() {
   const categoryData = {
     beds: hospitalsInRange,
     blood: hospitalsInRange,
-    nearest: mlRecommendations.length > 0 ? mlRecommendations : hospitalsInRange,
+    nearest: mlRecommendations,
     outbreak: outbreakData?.conditions || [],
     resources: attachRange(resourceRecords),
     medicines: attachRange(medicineRecords),
-    predictions: bedForecasts
-    // transfers: [],
+    predictions: bedForecasts,
+    transfers: transfers
     // donors: [],
     // organs: [],
     // authority: []
@@ -262,8 +280,11 @@ export default function App() {
                 activeTab={activeTab}
                 onBack={() => setActiveTab(null)}
                 records={categoryData[activeTab] || hospitalsInRange}
+                hospitals={hospitals}
                 medicineCatalog={resolvedCatalog}
                 rangeLabel={`${radiusKm} km of ${originLabel}`}
+                activeStaff={staffSession}
+                onOpenStaffPortal={() => setIsLoginOpen(true)}
                 // ML props
                 mlCondition={mlCondition}
                 setMlCondition={setMlCondition}
