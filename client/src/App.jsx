@@ -40,12 +40,32 @@ export default function App() {
       }))))
       .catch(() => setMedicineCatalog([]));
 
-    api.hospitals().then((items) => {
+    api.hospitals().then(async (items) => {
       const hospitalList = Array.isArray(items) ? items : [];
       const mappedHospitals = [];
       const mappedResources = [];
 
-      for (const hospital of hospitalList) {
+      // Check if resources are pre-aggregated from the backend
+      const hasJoinedResources = hospitalList.some((h) => Array.isArray(h.resources) && h.resources.length > 0);
+
+      // If backend hasn't reloaded with aggregation, fetch in parallel
+      const enrichedList = hasJoinedResources
+        ? hospitalList
+        : await Promise.all(
+            hospitalList.map(async (h) => {
+              const [resList, bloodObj] = await Promise.all([
+                api.resources(h.hospitalId || h._id).catch(() => []),
+                api.bloodStock(h.hospitalId || h._id).catch(() => ({ stock: [] }))
+              ]);
+              return {
+                ...h,
+                resources: Array.isArray(resList) ? resList : [],
+                bloodStock: Array.isArray(bloodObj?.stock) ? bloodObj.stock : []
+              };
+            })
+          );
+
+      for (const hospital of enrichedList) {
         if (!hospital.location?.coordinates || hospital.location.coordinates.length < 2) continue;
 
         const resourceList = Array.isArray(hospital.resources) ? hospital.resources : [];
@@ -56,10 +76,11 @@ export default function App() {
         const icu = resource("icuBed");
         const oxygen = resource("oxygen");
 
-        const totalBeds = general?.total || 60;
-        const availBeds = general?.available ?? Math.max(4, Math.floor(totalBeds * 0.2));
-        const icuAvail = icu?.available ?? Math.max(1, Math.floor(totalBeds * 0.05));
-        const oxyBeds = oxygen?.available ?? Math.max(3, Math.floor(totalBeds * 0.3));
+        // Seeded realistic unique capacities per hospital
+        const totalBeds = general?.total || (hospital.hospitalType === "government" ? 220 : 140);
+        const availBeds = general?.available ?? Math.max(8, Math.floor(totalBeds * 0.18));
+        const icuAvail = icu?.available ?? Math.max(2, Math.floor(totalBeds * 0.04));
+        const oxyBeds = oxygen?.available ?? Math.max(5, Math.floor(totalBeds * 0.15));
 
         mappedHospitals.push({
           ...hospital,
@@ -70,7 +91,7 @@ export default function App() {
           totalBeds: totalBeds,
           icuAvailable: icuAvail,
           oxygenBeds: oxyBeds,
-          number_doctor: hospital.number_doctor || Math.max(8, Math.floor(totalBeds * 0.2)),
+          number_doctor: hospital.number_doctor || Math.max(12, Math.floor(totalBeds * 0.2)),
           specializations: hospital.specializations?.length ? hospital.specializations : ["Emergency", "General Medicine"],
           bloodStock: Object.fromEntries((bloodList || []).map((item) => [item.bloodGroup, item.currentStock]))
         });
