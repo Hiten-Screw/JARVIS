@@ -60,5 +60,6 @@ export const api = {
   autoRecommendTransfer: (body) => apiRequest("/transfers/auto-recommend", { method: "POST", body: JSON.stringify(body) }),
   approveTransfer: (id) => apiRequest(`/transfers/${id}/approve`, { method: "PATCH" }),
   rejectTransfer: (id) => apiRequest(`/transfers/${id}/reject`, { method: "PATCH" }),
-  completeTransfer: (id) => apiRequest(`/transfers/${id}/complete`, { method: "PATCH" })
+  completeTransfer: (id) => apiRequest(`/transfers/${id}/complete`, { method: "PATCH" }),
+  queryAgent: (body) => apiRequest("/agent/query", { method: "POST", body: JSON.stringify(body) })
 };
