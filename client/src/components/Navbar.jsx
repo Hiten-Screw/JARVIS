@@ -1,8 +1,22 @@
 // client/src/components/Navbar.jsx
 import React from "react";
-import { Activity, Search, ShieldCheck, LogOut } from "lucide-react";
+import { Activity, Search, ShieldCheck, LogOut, Hospital } from "lucide-react";
 
-export default function Navbar({ searchQuery, setSearchQuery, onOpenStaffPortal, activeStaff, onLogout }) {
+export default function Navbar({
+  searchQuery,
+  setSearchQuery,
+  onSearchSubmit,
+  onOpenStaffPortal,
+  activeStaff,
+  onLogout
+}) {
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    if (onSearchSubmit) {
+      onSearchSubmit(searchQuery);
+    }
+  };
+
   return (
     <header className="bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
@@ -19,17 +33,23 @@ export default function Navbar({ searchQuery, setSearchQuery, onOpenStaffPortal,
           </div>
         </div>
 
-        {/* Global Search Bar */}
-        <div className="flex-1 max-w-md hidden sm:flex items-center relative">
+        {/* Global Search Bar with Submit Action */}
+        <form onSubmit={handleFormSubmit} className="flex-1 max-w-md hidden sm:flex items-center relative">
           <Search className="w-4 h-4 absolute left-3.5 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search hospitals, blood groups (O-), bed types..."
-            className="w-full bg-slate-50 border border-slate-200/90 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition-colors"
+            placeholder="Search medical condition (e.g. Heart Attack, Stroke, Cardiology)..."
+            className="w-full bg-slate-50 border border-slate-200/90 rounded-xl pl-9 pr-24 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:bg-white transition-colors shadow-2xs"
           />
-        </div>
+          <button
+            type="submit"
+            className="absolute right-1.5 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+          >
+            <Search className="w-3 h-3" /> Match
+          </button>
+        </form>
 
         {/* Staff Portal / Auth Controls */}
         <div className="flex items-center gap-2">

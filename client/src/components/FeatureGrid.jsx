@@ -1,17 +1,19 @@
-import { AlertTriangle, Bed, Brain, Droplet, FlaskConical, HeartPulse, MapPin, Pill, RefreshCw, ShieldCheck, TrendingUp } from "lucide-react";
+import { AlertTriangle, Bed, Brain, Droplet, FlaskConical, HeartPulse, MapPin, Pill, RefreshCw, ShieldCheck, TrendingUp, Hospital } from "lucide-react";
 
 const FEATURES = [
-  ["beds", "Live Bed & ICU Capacity", "Track general, ICU, emergency, ventilator, and oxygen availability.", Bed, "Live Status", "emerald"],
+  ["nearest", "AI Hospital Recommendation", "XGBoost recommendation engine ranking nearest emergency hospitals by condition and specialty.", Hospital, "ML Engine", "emerald"],
+  ["outbreak", "Outbreak Surveillance", "Real-time epidemic strain monitoring and disease case concentration alerts.", AlertTriangle, "Surveillance AI", "amber"],
+  ["predictions", "Bed Demand Forecast", "Predict future general, ICU, and emergency bed surge risk with confidence scores.", TrendingUp, "XGBoost Forecast", "blue"],
+  ["beds", "Live Bed & ICU Capacity", "Track general, ICU, emergency, ventilator, and oxygen availability in real-time.", Bed, "Live Status", "emerald"],
   ["blood", "Emergency Blood Bank", "Locate verified donors and blood units sorted by nearest storage.", Droplet, "Units Stocked", "rose"],
-  ["nearest", "Nearest & Best Rated", "Rank hospitals by travel time, emergency equipment, and specialties.", MapPin, "Fastest ETA", "emerald"],
-  ["outbreak", "Outbreak Surveillance", "Monitor demand signals and high-risk bed prediction alerts.", AlertTriangle, "Surveillance", "amber"],
-  ["resources", "Hospital Resources", "Review every tracked resource and its current availability.", ShieldCheck, "Live Inventory", "cyan"],
+  ["resources", "Hospital Resources", "Review every tracked resource and its current clinical availability.", ShieldCheck, "Live Inventory", "cyan"],
   ["medicines", "Medicine Inventory", "Check stock, minimum levels, expiry dates, and medicine categories.", Pill, "Stock Watch", "violet"],
-  ["predictions", "Bed Demand Forecast", "Predict future general, ICU, and emergency bed demand.", TrendingUp, "ML Forecast", "blue"],
+  /*
   ["transfers", "Resource Transfers", "Track recommended, approved, rejected, and completed medicine transfers.", RefreshCw, "Coordination", "orange"],
   ["donors", "Blood Donor Network", "Browse donor eligibility, blood groups, status, and proximity.", HeartPulse, "Verified Network", "rose"],
   ["organs", "Organ Match Registry", "Review organ availability, compatibility scores, and match status.", FlaskConical, "Match Review", "teal"],
-  ["authority", "Authority Dashboard", "See system-wide hospital, stock, transfer, and critical-risk totals.", Brain, "Command View", "slate"]
+  ["authority", "Authority Dashboard", "System-wide hospital, stock, transfer, and critical-risk analytics.", Brain, "Command View", "slate"]
+  */
 ];
 
 const COLOR_CLASSES = {
@@ -28,14 +30,29 @@ const COLOR_CLASSES = {
 
 export default function FeatureGrid({ onSelectCategory }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-full content-start">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 h-full content-start">
       {FEATURES.map(([id, title, description, Icon, badge, color]) => (
-        <button key={id} onClick={() => onSelectCategory(id)} className="healthgrid-card cursor-pointer text-left flex flex-col justify-between gap-4 group">
+        <button
+          key={id}
+          onClick={() => onSelectCategory(id)}
+          className="bg-white border border-slate-200/90 hover:border-emerald-400 p-4 rounded-2xl cursor-pointer text-left flex flex-col justify-between gap-3 group transition-all duration-200 hover:shadow-md active:scale-[0.99]"
+        >
           <div className="flex items-center justify-between">
-            <div className={`p-3 rounded-xl group-hover:text-white transition-colors ${COLOR_CLASSES[color]}`}><Icon className="w-5 h-5" /></div>
-            <span className="badge-mint">{badge}</span>
+            <div className={`p-2.5 rounded-xl group-hover:text-white transition-colors ${COLOR_CLASSES[color]}`}>
+              <Icon className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 group-hover:bg-emerald-50 group-hover:text-emerald-700 transition-colors">
+              {badge}
+            </span>
           </div>
-          <div><h3 className="font-bold text-sm text-slate-800 mb-1">{title}</h3><p className="text-xs text-slate-500 leading-relaxed">{description}</p></div>
+          <div>
+            <h3 className="font-bold text-xs sm:text-sm text-slate-900 mb-1 group-hover:text-emerald-700 transition-colors">
+              {title}
+            </h3>
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              {description}
+            </p>
+          </div>
         </button>
       ))}
     </div>

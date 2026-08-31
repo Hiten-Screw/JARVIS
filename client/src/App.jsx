@@ -1,5 +1,5 @@
 // client/src/App.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Navbar from "./components/Navbar";
 import MapCanvas from "./components/MapCanvas";
 import FeatureGrid from "./components/FeatureGrid";
@@ -23,6 +23,15 @@ export default function App() {
   const [medicineRecords, setMedicineRecords] = useState([]);
   const [medicineCatalog, setMedicineCatalog] = useState([]);
 
+  // ML State
+  const [mlCondition, setMlCondition] = useState("Heart Attack");
+  const [mlSpecialty, setMlSpecialty] = useState("");
+  const [mlRecommendations, setMlRecommendations] = useState([]);
+  const [outbreakData, setOutbreakData] = useState(null);
+  const [bedForecasts, setBedForecasts] = useState([]);
+  const [isMlLoading, setIsMlLoading] = useState(false);
+
+  // Initial Data Loading
   useEffect(() => {
     api.medicines()
       .then((items) => setMedicineCatalog((Array.isArray(items) ? items : []).map((medicine) => ({
@@ -58,6 +67,8 @@ export default function App() {
           totalBeds: general?.total || 0,
           icuAvailable: icu?.available || 0,
           oxygenBeds: oxygen?.available || 0,
+          number_doctor: hospital.number_doctor || 20,
+          specializations: hospital.specializations || ["Emergency", "General Medicine"],
           bloodStock: Object.fromEntries((blood?.stock || []).map((item) => [item.bloodGroup, item.currentStock]))
         });
 
@@ -90,6 +101,16 @@ export default function App() {
       setResourceRecords([]);
       setMedicineRecords([]);
     });
+
+    // Load Outbreak Surveillance Data
+    api.outbreakSurveillance()
+      .then((data) => setOutbreakData(data))
+      .catch(() => setOutbreakData(null));
+
+    // Load Bed Forecasts
+    api.bedForecasts()
+      .then((data) => setBedForecasts(Array.isArray(data) ? data : []))
+      .catch(() => setBedForecasts([]));
   }, []);
 
   const catalogFromStock = medicineRecords.map((record) => ({ id: record.medicineId, name: record.medicineName }));
@@ -105,18 +126,51 @@ export default function App() {
       return { ...record, distance: hospital?.distance || formatDistance(hospital?.distanceKm) };
     });
 
+  // Handler to run XGBoost ML recommendation on dataset
+  const handleRunRecommendation = useCallback(async (overrideCondition) => {
+    setIsMlLoading(true);
+    const cond = overrideCondition || mlCondition;
+    try {
+      const payload = {
+        latitude: origin[0],
+        longitude: origin[1],
+        specialty: mlSpecialty,
+        condition: cond,
+        state: "Uttar Pradesh"
+      };
+
+      const res = await api.recommendHospitals(payload);
+      const recs = res?.recommendations || (Array.isArray(res) ? res : []);
+      setMlRecommendations(recs);
+    } catch (err) {
+      console.warn("ML Recommendation error:", err);
+    } finally {
+      setIsMlLoading(false);
+    }
+  }, [origin, mlSpecialty, mlCondition]);
+
+  // Handle global search triggering ML recommendation
+  const handleGlobalSearch = (query) => {
+    setSearchQuery(query);
+    if (query && query.trim()) {
+      setMlCondition(query.trim());
+      setActiveTab("nearest");
+      handleRunRecommendation(query.trim());
+    }
+  };
+
   const categoryData = {
     beds: hospitalsInRange,
     blood: hospitalsInRange,
-    nearest: hospitalsInRange,
-    outbreak: [],
+    nearest: mlRecommendations.length > 0 ? mlRecommendations : hospitalsInRange,
+    outbreak: outbreakData?.conditions || [],
     resources: attachRange(resourceRecords),
     medicines: attachRange(medicineRecords),
-    predictions: [],
-    transfers: [],
-    donors: [],
-    organs: [],
-    authority: []
+    predictions: bedForecasts
+    // transfers: [],
+    // donors: [],
+    // organs: [],
+    // authority: []
   };
 
   const originLabel = originMode === "pin" ? "dropped pin" : originMode === "gps" ? "your location" : "map center";
@@ -144,69 +198,96 @@ export default function App() {
     staffSession ? (
       <StaffPortal session={staffSession} onExit={handleLogout} />
     ) : (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
-      <Navbar 
-        searchQuery={searchQuery}  
-        setSearchQuery={setSearchQuery} 
-        onOpenStaffPortal={() => setIsLoginOpen(true)}
-        activeStaff={staffSession}
-        onLogout={handleLogout} />
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
+        <Navbar 
+          searchQuery={searchQuery}  
+          setSearchQuery={setSearchQuery}
+          onSearchSubmit={handleGlobalSearch}
+          onOpenStaffPortal={() => setIsLoginOpen(true)}
+          activeStaff={staffSession}
+          onLogout={handleLogout}
+        />
 
-      <main className="flex-1 p-3 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5 max-w-7xl w-full mx-auto">
-        {/* Left Column: Map & SOS */}
-        <div className={`transition-all duration-300 ${activeTab ? "lg:col-span-8" : "lg:col-span-5"}`}>
-          <MapCanvas
-            hospitals={hospitalsInRange}
-            onTriggerSos={() => setActiveTab("sos")}
-            origin={origin}
-            originMode={originMode}
-            userLivePos={userLivePos}
-            radiusKm={radiusKm}
-            pinDropMode={pinDropMode}
-            onRadiusChange={setRadiusKm}
-            onPinDropModeChange={setPinDropMode}
-            onDropPin={(coords) => {
-              setOrigin(coords);
-              setOriginMode("pin");
-              setPinDropMode(false);
-            }}
-            onUseGps={(coords) => {
-              setUserLivePos(coords);
-              setOrigin(coords);
-              setOriginMode("gps");
-              setPinDropMode(false);
-            }}
-          />
-        </div>
-
-        {/* Right Column: Cards vs Expanded Drawer */}
-        <div className={`transition-all duration-300 ${activeTab ? "lg:col-span-4" : "lg:col-span-7"}`}>
-          <p className="text-xs text-slate-500 mb-3">
-            Showing {hospitalsInRange.length} hospital{hospitalsInRange.length === 1 ? "" : "s"} within {radiusKm} km of {originLabel}. Drop a pin to search from another place.
-          </p>
-          {!activeTab ? (
-            <FeatureGrid onSelectCategory={(cat) => setActiveTab(cat)} />
-          ) : (
-            <HospitalDrawer
-              activeTab={activeTab}
-              onBack={() => setActiveTab(null)}
-              records={categoryData[activeTab] || hospitalsInRange}
-              medicineCatalog={resolvedCatalog}
-              rangeLabel={`${radiusKm} km of ${originLabel}`}
+        <main className="flex-1 p-3 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5 max-w-7xl w-full mx-auto">
+          {/* Left Column: Map & SOS */}
+          <div className={`transition-all duration-300 ${activeTab ? "lg:col-span-8" : "lg:col-span-5"}`}>
+            <MapCanvas
+              hospitals={hospitalsInRange}
+              onTriggerSos={() => {
+                setMlCondition("Emergency Trauma");
+                setActiveTab("nearest");
+                handleRunRecommendation("Emergency Trauma");
+              }}
+              origin={origin}
+              originMode={originMode}
+              userLivePos={userLivePos}
+              radiusKm={radiusKm}
+              pinDropMode={pinDropMode}
+              onRadiusChange={setRadiusKm}
+              onPinDropModeChange={setPinDropMode}
+              onDropPin={(coords) => {
+                setOrigin(coords);
+                setOriginMode("pin");
+                setPinDropMode(false);
+              }}
+              onUseGps={(coords) => {
+                setUserLivePos(coords);
+                setOrigin(coords);
+                setOriginMode("gps");
+                setPinDropMode(false);
+              }}
             />
-          )}
-        </div>
-      </main>
+          </div>
 
-      <AiThoughtStream />
-      <StaffLoginModal
-        isOpen={isLoginOpen}
-        onClose={() => setIsLoginOpen(false)}
-        onLoginSuccess={(sessionData) => {
-          setStaffSession(sessionData);
-        }}
-      />
-    </div>
+          {/* Right Column: Cards vs Expanded Drawer */}
+          <div className={`transition-all duration-300 ${activeTab ? "lg:col-span-4" : "lg:col-span-7"}`}>
+            <p className="text-xs text-slate-500 mb-3">
+              Showing {hospitalsInRange.length} hospital{hospitalsInRange.length === 1 ? "" : "s"} within {radiusKm} km of {originLabel}. Drop a pin to search from another place.
+            </p>
+            {!activeTab ? (
+              <FeatureGrid
+                onSelectCategory={(cat) => {
+                  setActiveTab(cat);
+                  if (cat === "nearest") {
+                    handleRunRecommendation();
+                  } else if (cat === "predictions") {
+                    api.bedForecasts()
+                      .then((data) => setBedForecasts(Array.isArray(data) ? data : []))
+                      .catch(() => {});
+                  }
+                }}
+              />
+            ) : (
+              <HospitalDrawer
+                activeTab={activeTab}
+                onBack={() => setActiveTab(null)}
+                records={categoryData[activeTab] || hospitalsInRange}
+                medicineCatalog={resolvedCatalog}
+                rangeLabel={`${radiusKm} km of ${originLabel}`}
+                // ML props
+                mlCondition={mlCondition}
+                setMlCondition={setMlCondition}
+                mlSpecialty={mlSpecialty}
+                setMlSpecialty={setMlSpecialty}
+                onRunRecommendation={handleRunRecommendation}
+                isMlLoading={isMlLoading}
+                mlRecommendations={mlRecommendations}
+                outbreakData={outbreakData}
+                bedForecasts={bedForecasts}
+              />
+            )}
+          </div>
+        </main>
+
+        <AiThoughtStream />
+        <StaffLoginModal
+          isOpen={isLoginOpen}
+          onClose={() => setIsLoginOpen(false)}
+          onLoginSuccess={(sessionData) => {
+            setStaffSession(sessionData);
+          }}
+        />
+      </div>
     )
   );
 }
