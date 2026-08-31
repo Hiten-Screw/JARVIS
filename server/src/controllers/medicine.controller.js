@@ -42,6 +42,19 @@ export const getInventory = asyncHandler(async (req, res) => {
     );
 });
 
+export const getHospitalInventory = asyncHandler(async (req, res) => {
+    const hospital = await resolveHospital(req.params.hospitalId);
+    if (!hospital) throw new ApiError(404, "Hospital not found");
+
+    const inventory = await MedicineInventory.find({ hospitalId: hospital._id })
+        .populate("medicineId", "name genericName category manufacturer unit")
+        .sort({ updatedAt: -1 });
+
+    return res.status(200).json(
+        new ApiResponse(200, inventory, "Medicine inventory retrieved successfully")
+    );
+});
+
 
 // Create a medicine in the global master catalog
 // POST /api/v1/medicines
