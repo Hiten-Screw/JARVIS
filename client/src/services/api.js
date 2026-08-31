@@ -39,6 +39,7 @@ export const api = {
   createMedicine: (body) => apiRequest("/medicines", { method: "POST", body: JSON.stringify(body) }),
   medicines: () => apiRequest("/medicines"),
   inventory: () => apiRequest("/medicines/inventory"),
+  hospitalInventory: (hospitalId) => apiRequest(`/medicines/inventory/${hospitalId}`),
   updateInventory: (body) => apiRequest("/medicines/inventory", { method: "POST", body: JSON.stringify(body) }),
   resources: (hospitalId) => apiRequest(`/resources/${hospitalId}`),
   updateResource: (hospitalId, resourceType, body) => apiRequest(`/resources/${hospitalId}/${resourceType}`, { method: "PATCH", body: JSON.stringify(body) }),

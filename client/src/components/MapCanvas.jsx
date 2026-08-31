@@ -1,14 +1,10 @@
-// client/src/components/MapCanvas.jsx
-import React, { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import { PhoneCall, SlidersHorizontal, Hospital, ChevronDown, Crosshair } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Circle, MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { PhoneCall, SlidersHorizontal, MapPin, Crosshair } from "lucide-react";
 import L from "leaflet";
 import { getHospitalMarkerIcon } from "../utils/mapIcons";
+import { DEFAULT_MAP_CENTER, RADIUS_OPTIONS_KM } from "../utils/geo";
 
-// TEMP__DEFAULT_CENTER: Prayagraj Coordinates [lat, lng]
-const DEFAULT_CENTER = [25.4358, 81.8463];
-
-// Helper: Custom Blue Pulse Icon for Live User Location
 const userLocationIcon = L.divIcon({
   html: `
     <div class="relative flex items-center justify-center">
@@ -18,26 +14,58 @@ const userLocationIcon = L.divIcon({
   `,
   className: "user-gps-marker",
   iconSize: [24, 24],
-  iconAnchor: [12, 12],
+  iconAnchor: [12, 12]
 });
 
-// Helper Component: Pans map whenever target center changes
+const droppedPinIcon = L.divIcon({
+  html: `
+    <div class="relative flex items-center justify-center">
+      <svg width="28" height="36" viewBox="0 0 28 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.268 21.732 0 14 0z" fill="#7c3aed"/>
+        <circle cx="14" cy="14" r="6" fill="white"/>
+      </svg>
+    </div>
+  `,
+  className: "dropped-origin-pin",
+  iconSize: [28, 36],
+  iconAnchor: [14, 36],
+  popupAnchor: [0, -32]
+});
+
 function MapRecenter({ center }) {
   const map = useMap();
   useEffect(() => {
-    if (center) {
-      map.flyTo(center, 13, { duration: 1.5 });
-    }
+    if (center) map.flyTo(center, map.getZoom(), { duration: 1.2 });
   }, [center, map]);
   return null;
 }
 
-export default function MapCanvas({ hospitals = [], onTriggerSos, selectedRadius }) {
-  const [currentPosition, setCurrentPosition] = useState(DEFAULT_CENTER);
-  const [userLivePos, setUserLivePos] = useState(null);
-  const [isLocating, setIsLocating] = useState(false);
+function DropPinHandler({ enabled, onDrop }) {
+  useMapEvents({
+    click(event) {
+      if (!enabled) return;
+      onDrop([event.latlng.lat, event.latlng.lng]);
+    }
+  });
+  return null;
+}
 
-  // 1. Fetch User's Live GPS Location
+export default function MapCanvas({
+  hospitals = [],
+  onTriggerSos,
+  origin,
+  originMode,
+  userLivePos,
+  radiusKm,
+  pinDropMode,
+  onRadiusChange,
+  onPinDropModeChange,
+  onDropPin,
+  onUseGps
+}) {
+  const [isLocating, setIsLocating] = useState(false);
+  const mapCenter = origin || DEFAULT_MAP_CENTER;
+
   const handleGetLiveLocation = () => {
     if (!navigator.geolocation) {
       alert("Geolocation is not supported by your browser.");
@@ -47,9 +75,7 @@ export default function MapCanvas({ hospitals = [], onTriggerSos, selectedRadius
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const coords = [position.coords.latitude, position.coords.longitude];
-        setUserLivePos(coords);
-        setCurrentPosition(coords);
+        onUseGps([position.coords.latitude, position.coords.longitude]);
         setIsLocating(false);
       },
       (error) => {
@@ -60,43 +86,65 @@ export default function MapCanvas({ hospitals = [], onTriggerSos, selectedRadius
     );
   };
 
-  // Attempt to fetch GPS on initial mount
   useEffect(() => {
     handleGetLiveLocation();
   }, []);
 
   return (
     <section className="flex flex-col gap-3">
-      {/* 1. Leaflet Interactive Container */}
-      <div className="w-full h-[360px] md:h-[420px] bg-slate-100 border border-slate-200 rounded-2xl relative overflow-hidden shadow-inner z-0">
+      <div className={`w-full h-[360px] md:h-[420px] bg-slate-100 border border-slate-200 rounded-2xl relative overflow-hidden shadow-inner z-0 ${pinDropMode ? "cursor-crosshair" : ""}`}>
         <MapContainer
-          center={currentPosition}
-          zoom={13}
+          center={mapCenter}
+          zoom={12}
           scrollWheelZoom={true}
           className="w-full h-full"
         >
-          <MapRecenter center={currentPosition} />
+          <MapRecenter center={mapCenter} />
+          <DropPinHandler enabled={pinDropMode} onDrop={onDropPin} />
 
-          {/* OpenStreetMap Base Tile Layer */}
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {/* User's Live GPS Pin */}
+          <Circle
+            center={mapCenter}
+            radius={radiusKm * 1000}
+            pathOptions={{ color: "#059669", weight: 2, fillColor: "#10b981", fillOpacity: 0.1 }}
+          />
+
           {userLivePos && (
             <Marker position={userLivePos} icon={userLocationIcon}>
               <Popup>
                 <div className="p-1 text-xs font-semibold text-slate-800">
-                  📍 Your Live Location
+                  Your live location
                 </div>
               </Popup>
             </Marker>
           )}
 
-          {/* Dynamic Hospital Pins */}
+          {originMode === "pin" && origin && (
+            <Marker
+              position={origin}
+              icon={droppedPinIcon}
+              draggable={true}
+              eventHandlers={{
+                dragend: (event) => {
+                  const next = event.target.getLatLng();
+                  onDropPin([next.lat, next.lng]);
+                }
+              }}
+            >
+              <Popup>
+                <div className="p-1 text-xs font-semibold text-slate-800">
+                  Search origin (drag to move)
+                </div>
+              </Popup>
+            </Marker>
+          )}
+
           {hospitals.map((hosp) => {
-            const position = hosp.coordinates || [25.4358, 81.8463];
+            const position = hosp.coordinates || DEFAULT_MAP_CENTER;
             const total = hosp.totalBeds || 1;
             const available = hosp.availableBeds || 0;
 
@@ -147,16 +195,20 @@ export default function MapCanvas({ hospitals = [], onTriggerSos, selectedRadius
           })}
         </MapContainer>
 
-        {/* GPS Re-center Floating Action Button */}
+        {pinDropMode && (
+          <div className="absolute top-12 left-1/2 -translate-x-1/2 z-[400] bg-violet-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-md">
+            Tap the map to drop your search pin
+          </div>
+        )}
+
         <button
           onClick={handleGetLiveLocation}
-          title="Locate Me"
+          title="Use my live location"
           className="absolute bottom-3 right-3 z-[400] bg-white text-slate-700 p-2.5 rounded-xl shadow-md hover:bg-slate-50 border border-slate-200 transition-transform active:scale-95 cursor-pointer"
         >
-          <Crosshair className={`w-4 h-4 ${isLocating ? "animate-spin text-emerald-600" : "text-slate-600"}`} />
+          <Crosshair className={`w-4 h-4 ${isLocating ? "animate-spin text-emerald-600" : originMode === "gps" ? "text-emerald-600" : "text-slate-600"}`} />
         </button>
 
-        {/* Floating Legend Overlay */}
         <div className="absolute top-3 left-3 z-[400] flex gap-2 bg-white/90 backdrop-blur border border-slate-200 px-2.5 py-1 rounded-lg text-xs shadow-xs pointer-events-none">
           <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Open (&gt;20%)
@@ -170,7 +222,6 @@ export default function MapCanvas({ hospitals = [], onTriggerSos, selectedRadius
         </div>
       </div>
 
-      {/* 2. Emergency Action Button */}
       <button
         onClick={onTriggerSos}
         className="w-full bg-rose-600 hover:bg-rose-500 active:scale-[0.99] text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-rose-600/20 flex items-center justify-center gap-2 text-sm tracking-wide uppercase transition-all cursor-pointer"
@@ -179,24 +230,33 @@ export default function MapCanvas({ hospitals = [], onTriggerSos, selectedRadius
         Instant Emergency SOS / Ambulance
       </button>
 
-      {/* 3. Radius & Facility Selector */}
       <div className="grid grid-cols-2 gap-2">
-        <div className="bg-white border border-slate-200/80 rounded-xl p-2.5 flex items-center justify-between text-xs cursor-pointer hover:border-slate-300 shadow-xs">
+        <label className="bg-white border border-slate-200/80 rounded-xl p-2.5 flex items-center justify-between text-xs shadow-xs">
           <span className="text-slate-500 flex items-center gap-1.5">
             <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" /> Radius
           </span>
-          <span className="font-semibold text-slate-700 flex items-center gap-1">
-            {selectedRadius} <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-          </span>
-        </div>
-        <div className="bg-white border border-slate-200/80 rounded-xl p-2.5 flex items-center justify-between text-xs cursor-pointer hover:border-slate-300 shadow-xs">
+          <select
+            value={radiusKm}
+            onChange={(event) => onRadiusChange(Number(event.target.value))}
+            className="font-semibold text-slate-700 bg-transparent text-xs outline-none cursor-pointer"
+          >
+            {RADIUS_OPTIONS_KM.map((km) => (
+              <option key={km} value={km}>{km} km</option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          onClick={() => onPinDropModeChange(!pinDropMode)}
+          className={`bg-white border rounded-xl p-2.5 flex items-center justify-between text-xs shadow-xs cursor-pointer ${pinDropMode ? "border-violet-400 bg-violet-50" : "border-slate-200/80 hover:border-slate-300"}`}
+        >
           <span className="text-slate-500 flex items-center gap-1.5">
-            <Hospital className="w-3.5 h-3.5 text-emerald-600" /> Facility
+            <MapPin className={`w-3.5 h-3.5 ${pinDropMode || originMode === "pin" ? "text-violet-600" : "text-emerald-600"}`} /> Drop pin
           </span>
-          <span className="font-semibold text-slate-700 flex items-center gap-1">
-            All Types <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+          <span className="font-semibold text-slate-700">
+            {pinDropMode ? "Tap map" : originMode === "pin" ? "Pinned" : "Set origin"}
           </span>
-        </div>
+        </button>
       </div>
     </section>
   );

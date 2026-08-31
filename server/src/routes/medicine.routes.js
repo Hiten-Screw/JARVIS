@@ -4,6 +4,7 @@ import {
     createMedicine,
     getMedicines,
     getInventory,
+    getHospitalInventory,
     updateInventory,
     logConsumption,
     getMedicinePredictions
@@ -14,12 +15,9 @@ import { authorizeRoles } from "../middlewares/role.middleware.js";
 
 const router = Router();
 
-
-// Global medicine master catalog
-// Authority only
 router
     .route("/")
-    .get(verifyJWT, getMedicines)
+    .get(getMedicines)
     .post(
         verifyJWT,
         authorizeRoles("SUPER_ADMIN", "INVENTORY_STAFF"),
@@ -39,9 +37,8 @@ router
         updateInventory
     );
 
+router.route("/inventory/:hospitalId").get(getHospitalInventory);
 
-// Medicine consumption
-// Hospital Admin only
 router
     .route("/consumption")
     .post(
@@ -50,10 +47,8 @@ router
         logConsumption
     );
 
-// ML predictions remain read-only and outside the current portal workflow.
 router
     .route("/predictions/:hospitalId")
     .get(verifyJWT, getMedicinePredictions);
-
 
 export default router;

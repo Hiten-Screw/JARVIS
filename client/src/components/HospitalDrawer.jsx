@@ -15,6 +15,14 @@ const TITLES = {
   authority: "Authority summary"
 };
 
+const RESOURCE_LABELS = {
+  generalBed: "General beds",
+  icuBed: "ICU beds",
+  emergencyBed: "Emergency beds",
+  ventilator: "Ventilators",
+  oxygen: "Oxygen"
+};
+
 function RecordDetails({ activeTab, record }) {
   if (activeTab === "blood") {
     const stock = Object.entries(record.bloodStock || {});
@@ -43,7 +51,7 @@ function RecordDetails({ activeTab, record }) {
 
   const fields = {
     outbreak: [["Disease", "Not modeled in schema"], ["Date", record.predictedForDate], ["Bed demand", record.predictedBeds], ["Risk", record.riskLevel]],
-    resources: [["Type", record.resourceType], ["Available", `${record.available}/${record.total}`]],
+    resources: [["Type", RESOURCE_LABELS[record.resourceType] || record.resourceType], ["Available", `${record.available ?? 0}/${record.total ?? 0}`]],
     predictions: [["General beds", record.predictedBeds], ["ICU beds", record.predictedICUBeds], ["Emergency beds", record.predictedEmergencyBeds], ["For date", record.predictedForDate], ["Confidence", `${Math.round(record.confidence * 100)}%`], ["Model", record.modelVersion]],
     transfers: [["Route", `${record.fromHospital?.name || "Unknown source"} -> ${record.toHospital?.name || "Unknown destination"}`], ["Medicine", record.medicine?.name || "Unknown medicine"], ["Quantity", record.quantity], ["Status", record.status]],
     donors: [["Blood group", record.bloodGroup], ["Status", record.status], ["Distance", record.distance], ["Details", record.medicalDetails]],
@@ -81,11 +89,14 @@ function MedicineInventoryView({ records, medicineCatalog }) {
         </select>
       </label>
     </div>
-    <div className="flex flex-col gap-3">{filteredRecords.map((record) => <div key={record.id} className="p-3.5 bg-slate-50/70 border border-slate-200/80 rounded-xl"><div className="flex justify-between gap-2"><h4 className="font-bold text-sm text-slate-800">{record.medicineName}</h4><span className="text-xs text-slate-500">{record.hospitalName}</span></div><div className="grid grid-cols-3 gap-2 mt-2"><Metric label="Stock" value={record.quantity} tone={record.quantity <= record.minimumStock ? "text-rose-600" : "text-emerald-600"} /><Metric label="Minimum" value={record.minimumStock} /><Metric label="Expiry" value={record.expiryDate} /></div></div>)}</div>
+    <div className="flex flex-col gap-3">
+      {filteredRecords.length === 0 && <p className="text-xs text-slate-500">No medicine stock in range matches this filter. Drop a pin closer to a hospital, widen the radius, or add stock in the staff portal.</p>}
+      {filteredRecords.map((record) => <div key={record.id} className="p-3.5 bg-slate-50/70 border border-slate-200/80 rounded-xl"><div className="flex justify-between gap-2"><h4 className="font-bold text-sm text-slate-800">{record.medicineName}</h4><span className="text-xs text-slate-500">{record.hospitalName}</span></div><div className="grid grid-cols-3 gap-2 mt-2"><Metric label="Stock" value={record.quantity} tone={record.quantity <= record.minimumStock ? "text-rose-600" : "text-emerald-600"} /><Metric label="Minimum" value={record.minimumStock} /><Metric label="Expiry" value={record.expiryDate} /></div></div>)}
+    </div>
   </>;
 }
 
-export default function HospitalDrawer({ activeTab, onBack, records = [], medicineCatalog = [] }) {
+export default function HospitalDrawer({ activeTab, onBack, records = [], medicineCatalog = [], rangeLabel }) {
   return (
     <div className="bg-white border border-slate-200/80 rounded-2xl p-5 h-full flex flex-col shadow-xs">
       <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
@@ -102,15 +113,21 @@ export default function HospitalDrawer({ activeTab, onBack, records = [], medici
 
       <div className="flex-1 overflow-y-auto flex flex-col gap-3 pr-1">
         {activeTab === "medicines" && <MedicineInventoryView records={Array.isArray(records) ? records : []} medicineCatalog={medicineCatalog} />}
+        {activeTab !== "medicines" && (Array.isArray(records) ? records : []).length === 0 && (
+          <p className="text-xs text-slate-500">Nothing in range for this view{rangeLabel ? ` within ${rangeLabel}` : ""}. Drop a pin closer to a hospital or widen the radius.</p>
+        )}
         {activeTab !== "medicines" && (Array.isArray(records) ? records : []).map((record) => {
           const hospital = record.name || record.hospitalName || record.recipientHospital || "System record";
+          const title = activeTab === "resources"
+            ? `${RESOURCE_LABELS[record.resourceType] || record.resourceType} · ${hospital}`
+            : hospital;
           return (
           <div
             key={record.id || record._id}
             className="p-3.5 bg-slate-50/70 border border-slate-200/80 rounded-xl flex flex-col gap-2 hover:bg-white hover:border-emerald-300 transition-all shadow-2xs"
           >
             <div className="flex items-center justify-between">
-              <h4 className="font-bold text-sm text-slate-800">{hospital}</h4>
+              <h4 className="font-bold text-sm text-slate-800">{title}</h4>
               <span className="text-xs text-slate-500 font-mono">{record.distance || record.riskLevel || record.status || "Live"}</span>
             </div>
             <RecordDetails activeTab={activeTab} record={record} />
