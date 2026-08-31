@@ -268,93 +268,98 @@ function BedForecastsView({ forecasts = [] }) {
 const DEFAULT_RECOMMENDATIONS = [
   {
     rank: 1,
-    hospital_id: "8709",
-    hospital_name: "Aastha Maternity Home and Taruma Centre",
-    distance_km: 116.4,
-    distance_label: "116.4 km",
+    hospital_id: "HOSP-102",
+    hospital_name: "Swaroop Rani Nehru Hospital (SRN)",
+    distance_km: 2.0,
+    distance_label: "2.0 km",
+    within_range: true,
     recommendation_score: 0.97,
     match_percentage: 97.0,
     specialty_match: 1,
-    total_beds: 30,
-    available_beds: 6,
-    number_doctor: 8,
+    total_beds: 350,
+    available_beds: 62,
+    number_doctor: 65,
     emergency_available: 1,
-    state: "Himachal Pradesh",
-    district: "Mandi",
-    phone: "+91-532-2460123",
-    coordinates: [25.3077585, 82.9960144]
+    state: "Uttar Pradesh",
+    district: "Prayagraj",
+    phone: "+91-532-2256011",
+    coordinates: [25.4520, 81.8380]
   },
   {
     rank: 2,
-    hospital_id: "13825",
-    hospital_name: "Gulwade Ent Maternity Hospital",
-    distance_km: 171.5,
-    distance_label: "171.5 km",
-    recommendation_score: 0.97,
-    match_percentage: 97.0,
+    hospital_id: "HOSP-101",
+    hospital_name: "Prayagraj Central Civil Hospital",
+    distance_km: 0.0,
+    distance_label: "0.0 km",
+    within_range: true,
+    recommendation_score: 0.965,
+    match_percentage: 96.5,
     specialty_match: 1,
-    total_beds: 30,
-    available_beds: 6,
-    number_doctor: 8,
+    total_beds: 250,
+    available_beds: 45,
+    number_doctor: 45,
     emergency_available: 1,
-    state: "Maharashtra",
-    district: "Chandrapur",
+    state: "Uttar Pradesh",
+    district: "Prayagraj",
     phone: "+91-532-2460123",
-    coordinates: [24.0678159, 82.6316691]
+    coordinates: [25.4358, 81.8463]
   },
   {
     rank: 3,
-    hospital_id: "2714",
-    hospital_name: "Ashirwad Laser and Phaco Eye Hospital",
-    distance_km: 177.9,
-    distance_label: "177.9 km",
-    recommendation_score: 0.97,
-    match_percentage: 97.0,
+    hospital_id: "HOSP-108",
+    hospital_name: "Jeevan Jyoti Super Specialty Hospital",
+    distance_km: 0.8,
+    distance_label: "0.8 km",
+    within_range: true,
+    recommendation_score: 0.952,
+    match_percentage: 95.2,
     specialty_match: 1,
-    total_beds: 30,
-    available_beds: 6,
-    number_doctor: 8,
+    total_beds: 150,
+    available_beds: 28,
+    number_doctor: 30,
     emergency_available: 1,
-    state: "Chhattisgarh",
-    district: "Bilaspur",
-    phone: "+91-532-2460123",
-    coordinates: [26.8180732, 80.9496051]
+    state: "Uttar Pradesh",
+    district: "Prayagraj",
+    phone: "+91-532-2466000",
+    coordinates: [25.4390, 81.8530]
   },
   {
     rank: 4,
-    hospital_id: "8951",
-    hospital_name: "Kalindi Hospital And Diagnostic Centre",
-    distance_km: 185.0,
-    distance_label: "185.0 km",
-    recommendation_score: 0.97,
-    match_percentage: 97.0,
+    hospital_id: "HOSP-106",
+    hospital_name: "Nazareth Hospital",
+    distance_km: 1.6,
+    distance_label: "1.6 km",
+    within_range: true,
+    recommendation_score: 0.947,
+    match_percentage: 94.7,
     specialty_match: 1,
-    total_beds: 30,
-    available_beds: 6,
-    number_doctor: 8,
+    total_beds: 200,
+    available_beds: 35,
+    number_doctor: 38,
     emergency_available: 1,
-    state: "Jammu and Kashmir",
-    district: "Jammu",
-    phone: "+91-532-2460123",
-    coordinates: [26.8983972, 80.9629496]
+    state: "Uttar Pradesh",
+    district: "Prayagraj",
+    phone: "+91-532-2407441",
+    coordinates: [25.4490, 81.8390]
   },
   {
     rank: 5,
-    hospital_id: "2642",
-    hospital_name: "Bethel Hospital",
-    distance_km: 214.9,
-    distance_label: "214.9 km",
-    recommendation_score: 0.97,
-    match_percentage: 97.0,
+    hospital_id: "HOSP-103",
+    hospital_name: "Tej Bahadur Sapru (Beli) Hospital",
+    distance_km: 2.9,
+    distance_label: "2.9 km",
+    within_range: true,
+    recommendation_score: 0.942,
+    match_percentage: 94.2,
     specialty_match: 1,
-    total_beds: 30,
-    available_beds: 6,
-    number_doctor: 8,
+    total_beds: 180,
+    available_beds: 38,
+    number_doctor: 32,
     emergency_available: 1,
-    state: "Chhattisgarh",
-    district: "Bastar",
-    phone: "+91-532-2460123",
-    coordinates: [26.7893225, 83.3828202]
+    state: "Uttar Pradesh",
+    district: "Prayagraj",
+    phone: "+91-532-2420088",
+    coordinates: [25.4610, 81.8540]
   }
 ];
 
@@ -496,108 +501,144 @@ function RecommendationTriageView({
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {results.map((item, index) => {
-              const rank = item.rank || index + 1;
-              const matchPct = item.match_percentage ?? (item.recommendation_score ? Math.round(item.recommendation_score * 100) : 85);
-              const hospitalName = item.hospital_name || item.name || "Hospital";
-              const distance = item.distance_label || item.distance || (item.distance_km ? `${item.distance_km} km` : "Nearby");
-              const phone = item.phone || item.contact || "+91-9876543210";
-              const coords = Array.isArray(item.coordinates) && item.coordinates.length >= 2
-                ? item.coordinates
-                : (item.latitude && item.longitude ? [item.latitude, item.longitude] : [25.4358, 81.8463]);
+            {(() => {
+              const inRange = results.filter((item) => item.within_range !== false);
+              const outRange = results.filter((item) => item.within_range === false);
 
-              const rankBadgeStyle = rank === 1
-                ? "bg-emerald-600 text-white"
-                : rank === 2
-                ? "bg-teal-600 text-white"
-                : "bg-slate-700 text-white";
+              const renderCard = (item, index, isExtended = false) => {
+                const rank = item.rank || index + 1;
+                const matchPct = item.match_percentage ?? (item.recommendation_score ? Math.round(item.recommendation_score * 100) : 85);
+                const hospitalName = item.hospital_name || item.name || "Hospital";
+                const distance = item.distance_label || item.distance || (item.distance_km ? `${item.distance_km} km` : "Nearby");
+                const phone = item.phone || item.contact || "+91-532-2460123";
+                const coords = Array.isArray(item.coordinates) && item.coordinates.length >= 2
+                  ? item.coordinates
+                  : (item.latitude && item.longitude ? [item.latitude, item.longitude] : [25.4358, 81.8463]);
 
-              const matchBadgeStyle = matchPct >= 80
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                : matchPct >= 60
-                ? "bg-amber-50 text-amber-700 border-amber-200"
-                : "bg-slate-100 text-slate-700 border-slate-200";
+                const rankBadgeStyle = rank === 1 && !isExtended
+                  ? "bg-emerald-600 text-white"
+                  : rank === 2 && !isExtended
+                  ? "bg-teal-600 text-white"
+                  : isExtended
+                  ? "bg-slate-500 text-white"
+                  : "bg-slate-700 text-white";
 
-              return (
-                <div
-                  key={item.hospital_id || item.id || index}
-                  className={`p-4 rounded-2xl border transition-all shadow-xs flex flex-col gap-2.5 ${
-                    rank === 1
-                      ? "bg-gradient-to-b from-emerald-50/70 to-white border-emerald-300 ring-1 ring-emerald-400/30"
-                      : "bg-white border-slate-200/90 hover:border-emerald-300"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-start gap-2.5">
-                      <span className={`text-[11px] font-extrabold px-2 py-0.5 rounded-lg shadow-2xs shrink-0 ${rankBadgeStyle}`}>
-                        #{rank}
-                      </span>
-                      <div>
-                        <h4 className="font-bold text-sm text-slate-900 leading-snug">{hospitalName}</h4>
-                        <p className="text-[11px] text-slate-500 font-mono mt-0.5">
-                          {distance} away · {item.district || "Prayagraj"}
-                        </p>
+                const matchBadgeStyle = matchPct >= 80
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : matchPct >= 60
+                  ? "bg-amber-50 text-amber-700 border-amber-200"
+                  : "bg-slate-100 text-slate-700 border-slate-200";
+
+                return (
+                  <div
+                    key={item.hospital_id || item.id || index}
+                    className={`p-4 rounded-2xl border transition-all shadow-xs flex flex-col gap-2.5 ${
+                      rank === 1 && !isExtended
+                        ? "bg-gradient-to-b from-emerald-50/70 to-white border-emerald-300 ring-1 ring-emerald-400/30"
+                        : isExtended
+                        ? "bg-slate-50/70 border-dashed border-slate-300"
+                        : "bg-white border-slate-200/90 hover:border-emerald-300"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2.5">
+                        <span className={`text-[11px] font-extrabold px-2 py-0.5 rounded-lg shadow-2xs shrink-0 ${rankBadgeStyle}`}>
+                          #{rank}
+                        </span>
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="font-bold text-sm text-slate-900 leading-snug">{hospitalName}</h4>
+                            {isExtended && (
+                              <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-md font-semibold">
+                                Regional Option
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                            {distance} away · {item.district || "Prayagraj"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className={`px-2.5 py-1 rounded-xl border text-xs font-extrabold flex items-center gap-1 ${matchBadgeStyle}`}>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        {matchPct}% Match
                       </div>
                     </div>
 
-                    <div className={`px-2.5 py-1 rounded-xl border text-xs font-extrabold flex items-center gap-1 ${matchBadgeStyle}`}>
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      {matchPct}% Match
+                    {/* Metrics Grid */}
+                    <div className="grid grid-cols-3 gap-1.5 text-center">
+                      <Metric label="Avail Beds" value={item.available_beds ?? item.availableBeds ?? 15} tone="text-emerald-700" />
+                      <Metric label="Total Beds" value={item.total_beds ?? item.totalBeds ?? 100} />
+                      <Metric label="Doctors" value={item.number_doctor ?? 18} tone="text-blue-700" />
                     </div>
-                  </div>
 
-                  {/* Metrics Grid */}
-                  <div className="grid grid-cols-3 gap-1.5 text-center">
-                    <Metric label="Avail Beds" value={item.available_beds ?? item.availableBeds ?? 15} tone="text-emerald-700" />
-                    <Metric label="Total Beds" value={item.total_beds ?? item.totalBeds ?? 100} />
-                    <Metric label="Doctors" value={item.number_doctor ?? 18} tone="text-blue-700" />
-                  </div>
-
-                  {/* Capabilities & Emergency */}
-                  <div className="flex items-center justify-between text-xs px-2.5 py-1.5 bg-slate-50 rounded-xl border border-slate-200/60">
-                    <span className="flex items-center gap-1 text-slate-600 font-medium">
-                      {(item.emergency_available ?? item.emergencyDepartment) ? (
-                        <span className="text-emerald-700 flex items-center gap-1 font-semibold">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Emergency Ready
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">Emergency not listed</span>
-                      )}
-                    </span>
-
-                    {item.specialty_match !== undefined && (
-                      <span className="text-[11px] text-slate-500">
-                        {item.specialty_match ? (
-                          <span className="flex items-center gap-1 text-emerald-700 font-medium">
-                            <Check className="w-3 h-3 text-emerald-600" /> Specialty Matched
+                    {/* Capabilities & Emergency */}
+                    <div className="flex items-center justify-between text-xs px-2.5 py-1.5 bg-slate-50 rounded-xl border border-slate-200/60">
+                      <span className="flex items-center gap-1 text-slate-600 font-medium">
+                        {(item.emergency_available ?? item.emergencyDepartment) ? (
+                          <span className="text-emerald-700 flex items-center gap-1 font-semibold">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Emergency Ready
                           </span>
                         ) : (
-                          "General Match"
+                          <span className="text-slate-400">Emergency not listed</span>
                         )}
                       </span>
-                    )}
-                  </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-2 mt-1">
-                    <a
-                      href={`tel:${phone}`}
-                      className="flex-1 py-2 bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
-                    >
-                      <PhoneCall className="w-3.5 h-3.5" /> Call Desk
-                    </a>
-                    <a
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${coords[0]},${coords[1]}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex-1 py-2 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
-                    >
-                      <Navigation className="w-3.5 h-3.5" /> GPS Directions
-                    </a>
+                      {item.specialty_match !== undefined && (
+                        <span className="text-[11px] text-slate-500">
+                          {item.specialty_match ? (
+                            <span className="flex items-center gap-1 text-emerald-700 font-medium">
+                              <Check className="w-3 h-3 text-emerald-600" /> Specialty Matched
+                            </span>
+                          ) : (
+                            "General Match"
+                          )}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2 mt-1">
+                      <a
+                        href={`tel:${phone}`}
+                        className="flex-1 py-2 bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <PhoneCall className="w-3.5 h-3.5" /> Call Desk
+                      </a>
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${coords[0]},${coords[1]}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 py-2 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <Navigation className="w-3.5 h-3.5" /> GPS Directions
+                      </a>
+                    </div>
                   </div>
-                </div>
+                );
+              };
+
+              return (
+                <>
+                  {inRange.map((item, idx) => renderCard(item, idx, false))}
+
+                  {outRange.length > 0 && (
+                    <div className="mt-2 flex flex-col gap-2.5">
+                      <div className="p-3 bg-slate-100 rounded-xl border border-slate-200 text-xs text-slate-600 flex flex-col gap-0.5">
+                        <span className="font-bold text-slate-800 flex items-center gap-1">
+                          <Activity className="w-3.5 h-3.5 text-blue-600" /> Extended Regional Options (Outside Radius)
+                        </span>
+                        <p className="text-[11px] text-slate-500">
+                          Fewer than 10 facilities found in immediate radius. Showing top-ranked regional emergency centers.
+                        </p>
+                      </div>
+                      {outRange.map((item, idx) => renderCard(item, inRange.length + idx, true))}
+                    </div>
+                  )}
+                </>
               );
-            })}
+            })()}
           </div>
         )}
       </div>

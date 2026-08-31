@@ -77,10 +77,27 @@ export const createHospital = asyncHandler(async (req, res) => {
 });
 
 
-// Get all hospitals
+// Get all hospitals with resources and blood stock joined in 1 query
 // GET /api/v1/hospitals
 export const getHospitals = asyncHandler(async (req, res) => {
-    const hospitals = await Hospital.find();
+    const hospitals = await Hospital.aggregate([
+        {
+            $lookup: {
+                from: "hospitalresources",
+                localField: "_id",
+                foreignField: "hospitalId",
+                as: "resources"
+            }
+        },
+        {
+            $lookup: {
+                from: "bloodstocks",
+                localField: "_id",
+                foreignField: "hospitalId",
+                as: "bloodStock"
+            }
+        }
+    ]);
 
     return res
         .status(200)

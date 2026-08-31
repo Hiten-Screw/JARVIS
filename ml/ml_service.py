@@ -224,14 +224,37 @@ def recommend_hospitals_service(patient_lat, patient_lng, specialty="", conditio
                 0.98
             )
 
-        # Sort by recommendation score descending and distance ascending
-        cands = cands.sort_values(by=["recommendation_score", "distance_km"], ascending=[False, True])
+        # Separate in-range vs out-of-range candidates based on radius_km
+        effective_radius = float(radius_km) if radius_km and float(radius_km) > 0 else 25.0
 
-        # Pick top 5 best options from CSV
-        top_df = cands.head(top_n)
+        cands_in_range = cands[cands["distance_km"] <= effective_radius].sort_values(
+            by=["recommendation_score", "distance_km"], ascending=[False, True]
+        )
+        cands_out_range = cands[cands["distance_km"] > effective_radius].sort_values(
+            by=["recommendation_score", "distance_km"], ascending=[False, True]
+        )
+
+        # If in-range has at least 10, take top 10 in-range.
+        # Otherwise, take all in-range and fill the rest up to 10 with best out-of-range options.
+        min_results = max(top_n, 10)
+        selected_rows = []
+
+        for _, row in cands_in_range.iterrows():
+            row_dict = row.to_dict()
+            row_dict["within_range"] = True
+            selected_rows.append(row_dict)
+            if len(selected_rows) >= min_results:
+                break
+
+        if len(selected_rows) < min_results:
+            needed = min_results - len(selected_rows)
+            for _, row in cands_out_range.head(needed).iterrows():
+                row_dict = row.to_dict()
+                row_dict["within_range"] = False
+                selected_rows.append(row_dict)
 
         results = []
-        for rank, (_, row) in enumerate(top_df.iterrows(), start=1):
+        for rank, row in enumerate(selected_rows, start=1):
             score_pct = round(float(row["recommendation_score"]) * 100, 1)
             dist_km = round(float(row["distance_km"]), 1)
             total_b = int(row["total_beds"])
@@ -249,13 +272,14 @@ def recommend_hospitals_service(patient_lat, patient_lng, specialty="", conditio
 
             results.append({
                 "rank": rank,
-                "hospital_id": str(row.get("hospital_id", "") or f"csv-{row.name}"),
+                "hospital_id": str(row.get("hospital_id", "") or f"csv-{rank}"),
                 "hospital_name": str(row.get("hospital_name", "Hospital")),
                 "latitude": float(row["latitude"]),
                 "longitude": float(row["longitude"]),
                 "coordinates": [float(row["latitude"]), float(row["longitude"])],
                 "distance_km": dist_km,
                 "distance_label": f"{dist_km} km",
+                "within_range": bool(row.get("within_range", True)),
                 "recommendation_score": round(float(row["recommendation_score"]), 4),
                 "match_percentage": score_pct,
                 "specialty_match": int(row["specialty_match"]),
@@ -315,11 +339,37 @@ def get_outbreak_surveillance_data():
 
 def get_bed_forecasts_data(hospitals_input=None):
     forecasts = []
-    base_hospitals = hospitals_input or [
-        {"id": "hosp-1", "name": "Civil Hospital", "totalBeds": 120, "availableBeds": 18, "icuAvailable": 4},
-        {"id": "hosp-2", "name": "Swaroop Rani Nehru Hospital", "totalBeds": 250, "availableBeds": 5, "icuAvailable": 1},
-        {"id": "hosp-3", "name": "Apollo Clinic", "totalBeds": 60, "availableBeds": 0, "icuAvailable": 0}
-    ]
+    base_hospitals = hospitals_input
+
+    if not base_hospitals and os.path.exists(MASTER_PATH):
+        try:
+            df_m = pd.read_csv(MASTER_PATH, nrows=30, low_memory=False)
+            base_hospitals = []
+            for _, r in df_m.iterrows():
+                if pd.notna(r.get("hospital_name")):
+                    tb = int(pd.to_numeric(r.get("total_num_beds"), errors="coerce") or 120)
+                    ab = max(4, int(tb * 0.18))
+                    base_hospitals.append({
+                        "id": str(r.get("hospital_id", "")),
+                        "name": str(r.get("hospital_name", "Hospital")),
+                        "totalBeds": tb,
+                        "availableBeds": ab,
+                        "icuAvailable": max(1, int(tb * 0.04))
+                    })
+        except Exception:
+            base_hospitals = None
+
+    if not base_hospitals:
+        base_hospitals = [
+            {"id": "HOSP-101", "name": "Prayagraj Central Civil Hospital", "totalBeds": 250, "availableBeds": 45, "icuAvailable": 7},
+            {"id": "HOSP-102", "name": "Swaroop Rani Nehru Hospital (SRN)", "totalBeds": 350, "availableBeds": 62, "icuAvailable": 12},
+            {"id": "HOSP-103", "name": "Tej Bahadur Sapru (Beli) Hospital", "totalBeds": 180, "availableBeds": 38, "icuAvailable": 5},
+            {"id": "HOSP-104", "name": "Kamla Nehru Memorial Hospital", "totalBeds": 160, "availableBeds": 24, "icuAvailable": 4},
+            {"id": "HOSP-106", "name": "Nazareth Hospital", "totalBeds": 200, "availableBeds": 35, "icuAvailable": 6},
+            {"id": "HOSP-107", "name": "United Medicity Super Specialty Hospital", "totalBeds": 300, "availableBeds": 58, "icuAvailable": 10},
+            {"id": "HOSP-201", "name": "BHU Sir Sunderlal Hospital", "totalBeds": 450, "availableBeds": 82, "icuAvailable": 15},
+            {"id": "HOSP-203", "name": "KGMU Super Specialty Hospital", "totalBeds": 500, "availableBeds": 95, "icuAvailable": 18}
+        ]
 
     for hosp in base_hospitals:
         name = hosp.get("name") or hosp.get("hospital_name") or "Hospital"
