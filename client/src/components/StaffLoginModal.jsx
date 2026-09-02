@@ -1,4 +1,3 @@
-// client/src/components/StaffLoginModal.jsx
 import { useState } from "react";
 import { Lock, Hospital, UserCheck, ShieldCheck, ArrowRight, ArrowLeft, Plus, X } from "lucide-react";
 import { CircleMarker, MapContainer, TileLayer, useMapEvents } from "react-leaflet";

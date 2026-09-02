@@ -392,7 +392,6 @@ function RecommendationTriageView({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Interactive AI Triage & Recommendation Form */}
       <form onSubmit={handleSubmit} className="bg-gradient-to-br from-emerald-950/5 via-teal-900/5 to-slate-100/60 border border-emerald-300/80 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
@@ -404,7 +403,6 @@ function RecommendationTriageView({
           </span>
         </div>
 
-        {/* Condition Input */}
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1">
             Patient Condition / Emergency Case
@@ -420,7 +418,7 @@ function RecommendationTriageView({
             />
           </div>
 
-          {/* Quick Select Suggestion Chips */}
+
           <div className="flex flex-wrap gap-1.5 mt-2">
             {POPULAR_CONDITIONS.map((cond) => (
               <button
@@ -444,7 +442,6 @@ function RecommendationTriageView({
           </div>
         </div>
 
-        {/* Specialty Selector */}
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1">
             Required Specialty (Optional)
@@ -462,7 +459,6 @@ function RecommendationTriageView({
           </select>
         </div>
 
-        {/* PROMINENT SUBMIT BUTTON */}
         <button
           type="submit"
           id="btn-run-ml-recommendation"
@@ -483,7 +479,6 @@ function RecommendationTriageView({
         </button>
       </form>
 
-      {/* Ranked ML Results List */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">

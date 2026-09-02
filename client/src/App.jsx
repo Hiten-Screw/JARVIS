@@ -1,4 +1,3 @@
-// client/src/App.jsx
 import { useEffect, useState, useCallback } from "react";
 import Navbar from "./components/Navbar";
 import MapCanvas from "./components/MapCanvas";

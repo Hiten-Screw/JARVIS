@@ -60,7 +60,6 @@ export default function AiThoughtStream({ onSelectAction }) {
     const userMsgId = Date.now();
     const assistantMsgId = userMsgId + 1;
 
-    // Add user message
     setMessages((prev) => [
       ...prev,
       {
@@ -166,7 +165,6 @@ export default function AiThoughtStream({ onSelectAction }) {
 
   return (
     <div className="fixed bottom-4 right-4 z-40">
-      {/* Floating Trigger Pill */}
       {!isOpen ? (
         <button
           onClick={() => setIsOpen(true)}
@@ -177,9 +175,8 @@ export default function AiThoughtStream({ onSelectAction }) {
           <span className="w-2 h-2 rounded-full bg-emerald-300 animate-ping"></span>
         </button>
       ) : (
-        /* Agent Panel Container */
         <div className="w-[92vw] sm:w-[450px] max-w-[470px] bg-white border border-slate-200/90 rounded-3xl shadow-2xl flex flex-col h-[540px] animate-in fade-in slide-in-from-bottom-4 duration-200 overflow-hidden">
-          {/* Header */}
+
           <div className="px-4 py-3 bg-gradient-to-r from-emerald-700 to-teal-700 text-white flex items-center justify-between shadow-xs">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center text-white shadow-xs">
@@ -187,7 +184,7 @@ export default function AiThoughtStream({ onSelectAction }) {
               </div>
               <div>
                 <h3 className="font-bold text-xs sm:text-sm text-white flex items-center gap-1.5 leading-snug">
-                  JARVIS Clinical Copilot
+                  JARVIS Clinical Gemini
                   <span className="text-[9px] font-mono font-bold bg-white/20 text-white px-1.5 py-0.2 rounded-full">
                     Gemini 3.6
                   </span>
@@ -206,7 +203,6 @@ export default function AiThoughtStream({ onSelectAction }) {
             </button>
           </div>
 
-          {/* Messages Stream Container */}
           <div className="flex-1 p-3.5 overflow-y-auto flex flex-col gap-3.5 bg-slate-50/60">
             {messages.map((msg) => {
               const isUser = msg.role === "user";
@@ -220,7 +216,6 @@ export default function AiThoughtStream({ onSelectAction }) {
                   key={msg.id}
                   className={`flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}
                 >
-                  {/* Message Bubble */}
                   <div
                     className={`p-3.5 text-xs leading-relaxed max-w-[94%] shadow-2xs ${
                       isUser
@@ -230,7 +225,7 @@ export default function AiThoughtStream({ onSelectAction }) {
                   >
                     <div className="whitespace-pre-wrap">{msg.text}</div>
 
-                    {/* Compiled Emergency / Specialty Summary & One-Click Call Card */}
+                    
                     {!isUser && summary && (
                       <div className={`mt-3 p-3 rounded-2xl flex flex-col gap-2.5 shadow-2xs border ${
                         isCritical
@@ -275,7 +270,6 @@ export default function AiThoughtStream({ onSelectAction }) {
                           </div>
                         </div>
 
-                        {/* One-Click Call Button */}
                         {summary.hospitalPhone && (
                           <div className="flex items-center gap-2 pt-1">
                             <a
@@ -304,7 +298,6 @@ export default function AiThoughtStream({ onSelectAction }) {
                       </div>
                     )}
 
-                    {/* Collapsible Reasoning & Tool Trace */}
                     {!isUser && msg.thoughts && msg.thoughts.length > 0 && (
                       <div className="mt-2.5 pt-2 border-t border-slate-100">
                         <button
@@ -354,7 +347,6 @@ export default function AiThoughtStream({ onSelectAction }) {
             <div ref={streamEndRef} />
           </div>
 
-          {/* Quick Prompts Bar */}
           <div className="px-3 pt-2 pb-1 bg-white border-t border-slate-100">
             <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
               {QUICK_PROMPTS.map((qp, idx) => (
@@ -370,7 +362,6 @@ export default function AiThoughtStream({ onSelectAction }) {
             </div>
           </div>
 
-          {/* Query Input Bar */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
