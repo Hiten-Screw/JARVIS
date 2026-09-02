@@ -173,20 +173,28 @@ export default function MapCanvas({
                     </div>
 
                     <div className="flex gap-1.5 mt-1">
-                      <a
-                        href={`tel:${hosp.phone}`}
-                        className="flex-1 py-1 bg-emerald-600 text-white rounded text-center text-[11px] font-bold no-underline"
-                      >
-                        Call Desk
-                      </a>
-                      <a
-                        href={`https://www.google.com/maps/dir/?api=1&destination=${position[0]},${position[1]}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex-1 py-1 bg-slate-800 text-white rounded text-center text-[11px] font-bold no-underline"
-                      >
-                        GPS Route
-                      </a>
+                      {hosp.phone && hosp.phone !== "Not provided" ? (
+                        <a
+                          href={`tel:${hosp.phone}`}
+                          className="flex-1 py-1 bg-emerald-600 text-white rounded text-center text-[11px] font-bold no-underline"
+                        >
+                          Call Desk
+                        </a>
+                      ) : (
+                        <span className="flex-1 py-1 bg-slate-100 text-slate-400 rounded text-center text-[11px]">
+                          No phone
+                        </span>
+                      )}
+                      {position && position.length >= 2 ? (
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${position[0]},${position[1]}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 py-1 bg-slate-800 text-white rounded text-center text-[11px] font-bold no-underline"
+                        >
+                          GPS Route
+                        </a>
+                      ) : null}
                     </div>
                   </div>
                 </Popup>

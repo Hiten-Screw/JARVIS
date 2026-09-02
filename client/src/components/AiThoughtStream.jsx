@@ -35,8 +35,8 @@ export default function AiThoughtStream({ onSelectAction }) {
       role: "assistant",
       text: "Hello! I am your **JARVIS Clinical AI Copilot**. Ask me any medical triage query, bed availability check, or emergency dispatch instruction.",
       thoughts: [
-        "Connected to live hospital database (12 Prayagraj + 12 regional UP centers).",
-        "XGBoost triage models & 24h bed surge forecasters synchronized."
+        "Connected to live hospital database telemetry.",
+        "XGBoost triage models & bed surge forecasters synchronized."
       ],
       time: "Just now"
     }
@@ -75,7 +75,9 @@ export default function AiThoughtStream({ onSelectAction }) {
       try {
         response = await api.queryAgent({ query: q });
       } catch (networkErr) {
-        console.warn("Backend agent network fallback:", networkErr);
+        console.warn("Backend agent query error:", networkErr);
+        /*
+        // Hardcoded simulation responses commented out to prevent displaying fake hospital telemetry
         const isVaranasi = q.toLowerCase().includes("varanasi") || q.toLowerCase().includes("varansi");
         const isCardiac = q.toLowerCase().includes("chest") || q.toLowerCase().includes("heart") || q.toLowerCase().includes("crushing");
 
@@ -130,6 +132,16 @@ export default function AiThoughtStream({ onSelectAction }) {
             confidenceScore: 0.94
           };
         }
+        */
+        response = {
+          conclusion: "Unable to reach the clinical AI assistant service. Please ensure the backend server is running.",
+          summary: null,
+          thoughtStream: [
+            { text: "Attempted query to AI agent API endpoint." },
+            { text: "Connection unavailable or service offline." }
+          ],
+          confidenceScore: null
+        };
       }
 
       const thoughts = (response?.thoughtStream || []).map((t) => t.text || t);
@@ -140,10 +152,10 @@ export default function AiThoughtStream({ onSelectAction }) {
         {
           id: assistantMsgId,
           role: "assistant",
-          text: response?.conclusion || "Clinical recommendation generated.",
+          text: response?.conclusion || "Clinical recommendation not available.",
           summary,
-          thoughts: thoughts.length > 0 ? thoughts : ["Telemetry evaluated with XGBoost matching."],
-          confidence: response?.confidenceScore ? Math.round(response.confidenceScore * 100) : 95,
+          thoughts: thoughts.length > 0 ? thoughts : ["Telemetry evaluation completed."],
+          confidence: response?.confidenceScore ? Math.round(response.confidenceScore * 100) : null,
           time: "Just now"
         }
       ]);
@@ -153,8 +165,8 @@ export default function AiThoughtStream({ onSelectAction }) {
         {
           id: assistantMsgId,
           role: "assistant",
-          text: "I analyzed your request across the live facility database. Central emergency facilities in your area are operational with available beds.",
-          thoughts: ["Evaluated request against active network telemetry."],
+          text: "An error occurred while processing your request. Data is currently not available.",
+          thoughts: ["Request failed."],
           time: "Just now"
         }
       ]);
