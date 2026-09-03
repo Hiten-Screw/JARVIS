@@ -1,84 +1,10 @@
-import path from "path";
-import { spawn } from "child_process";
-import { fileURLToPath } from "url";
 import { Hospital } from "../models/Hospital.models.js";
 import { HospitalResource } from "../models/Hospital_resource.models.js";
 import { BloodStock } from "../models/BloodStock.models.js";
 import { MedicineInventory } from "../models/MedicineInventory.models.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const ML_SERVICE_SCRIPT = path.resolve(__dirname, "../../../ml/ml_service.py");
-
-/**
- * Helper to run Python ML service
- */
-function runPythonML(payload, timeoutMs = 10000) {
-  return new Promise((resolve, reject) => {
-    const pythonCmd = process.env.PYTHON_BIN || "python";
-    const pyProcess = spawn(pythonCmd, [ML_SERVICE_SCRIPT, "--stdin"], {
-      cwd: path.resolve(__dirname, "../../../ml"),
-      stdio: ["pipe", "pipe", "pipe"],
-      env: { ...process.env, PYTHONIOENCODING: "utf-8" }
-    });
-
-    let stdoutData = "";
-    let stderrData = "";
-    let isSettled = false;
-
-    const timer = setTimeout(() => {
-      if (!isSettled) {
-        isSettled = true;
-        pyProcess.kill();
-        reject(new Error(`ML service timed out after ${timeoutMs}ms`));
-      }
-    }, timeoutMs);
-
-    pyProcess.stdout.on("data", (data) => {
-      stdoutData += data.toString("utf-8");
-    });
-    pyProcess.stderr.on("data", (data) => {
-      stderrData += data.toString("utf-8");
-    });
-    pyProcess.on("error", (err) => {
-      if (!isSettled) {
-        isSettled = true;
-        clearTimeout(timer);
-        reject(err);
-      }
-    });
-    pyProcess.on("close", (code) => {
-      if (isSettled) return;
-      isSettled = true;
-      clearTimeout(timer);
-
-      try {
-        const trimmed = stdoutData.trim();
-        const jsonMatch = trimmed.match(/(\[.*\]|\{.*\})/s);
-        if (jsonMatch) {
-          resolve(JSON.parse(jsonMatch[0]));
-        } else {
-          resolve(JSON.parse(trimmed));
-        }
-      } catch (err) {
-        resolve([]);
-      }
-    });
-
-    try {
-      pyProcess.stdin.write(JSON.stringify(payload));
-      pyProcess.stdin.end();
-    } catch (writeErr) {
-      if (!isSettled) {
-        isSettled = true;
-        clearTimeout(timer);
-        reject(writeErr);
-      }
-    }
-  });
-}
+import { callMLService } from "./ml.controller.js";
 
 // --------------------------------------------------------------------------
 // Tool Definitions (Executable Functions)
@@ -132,26 +58,40 @@ async function toolQueryHospitals({ city, specialty, emergencyOnly }) {
 }
 
 async function toolRunMlTriage({ condition, latitude, longitude, radiusKm = 25 }) {
-  const payload = {
-    action: "recommend",
-    latitude: Number(latitude || 25.4358),
-    longitude: Number(longitude || 81.8463),
-    condition: condition || "Emergency",
-    radiusKm: Number(radiusKm || 25),
-    top_n: 5
-  };
-  const results = await runPythonML(payload);
-  return Array.isArray(results) ? results : [];
+  try {
+    const payload = {
+      latitude: Number(latitude || 25.4358),
+      longitude: Number(longitude || 81.8463),
+      condition: condition || "Emergency",
+      radiusKm: Number(radiusKm || 25),
+      state: "Uttar Pradesh"
+    };
+    const mlResponse = await callMLService("/recommend", "POST", payload);
+    return Array.isArray(mlResponse?.recommendations) ? mlResponse.recommendations : [];
+  } catch (err) {
+    console.warn("ML Triage service error:", err.message);
+    return [];
+  }
 }
 
 async function toolGetOutbreakSurveillance() {
-  const data = await runPythonML({ action: "outbreak" });
-  return data || {};
+  try {
+    const data = await callMLService("/outbreak", "GET");
+    return data || {};
+  } catch (err) {
+    console.warn("ML Outbreak service error:", err.message);
+    return {};
+  }
 }
 
 async function toolGetBedForecasts() {
-  const forecasts = await runPythonML({ action: "forecasts" });
-  return Array.isArray(forecasts) ? forecasts : [];
+  try {
+    const forecasts = await callMLService("/forecasts", "POST", null);
+    return Array.isArray(forecasts) ? forecasts : [];
+  } catch (err) {
+    console.warn("ML Forecasts service error:", err.message);
+    return [];
+  }
 }
 
 async function toolCheckBloodAndMedicines({ bloodGroup, medicineName }) {

@@ -6,14 +6,11 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 /**
  * Helper function to call deployed ML FastAPI service
  */
-async function callMLService(endpoint, method = "GET", payload = null) {
-  const ML_SERVICE_URL = process.env.ML_SERVICE_URL;
+export async function callMLService(endpoint, method = "GET", payload = null) {
+  const rawUrl = process.env.ML_SERVICE_URL || "https://jarvis-ml-service.onrender.com";
+  const ML_SERVICE_URL = rawUrl.trim().replace(/\/+$/, "");
 
-  console.log("ML_SERVICE_URL:", ML_SERVICE_URL);
-
-  if (!ML_SERVICE_URL) {
-    throw new Error("ML_SERVICE_URL is not configured");
-  }
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
 
   const options = {
     method,
@@ -27,7 +24,7 @@ async function callMLService(endpoint, method = "GET", payload = null) {
   }
 
   const response = await fetch(
-    `${ML_SERVICE_URL}${endpoint}`,
+    `${ML_SERVICE_URL}${cleanEndpoint}`,
     options
   );
 
