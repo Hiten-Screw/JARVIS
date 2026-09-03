@@ -66,11 +66,11 @@ function OutbreakSurveillanceView({ outbreakData, onSelectConditionForRecommenda
       <div className="grid grid-cols-3 gap-2 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent p-3 rounded-xl border border-amber-200">
         <div className="text-center">
           <span className="text-[10px] text-slate-500 font-semibold uppercase">Tracked Cases</span>
-          <p className="text-lg font-extrabold text-amber-700 font-mono">{data.total_cases_tracked || 984}</p>
+          <p className="text-lg font-extrabold text-amber-700 font-mono">{data.total_cases_tracked ?? "N/A"}</p>
         </div>
         <div className="text-center border-x border-amber-200/60 px-1">
           <span className="text-[10px] text-slate-500 font-semibold uppercase">Top Strain</span>
-          <p className="text-xs font-bold text-slate-800 truncate mt-1">{data.highest_demand_condition || "Heart Attack"}</p>
+          <p className="text-xs font-bold text-slate-800 truncate mt-1">{data.highest_demand_condition || "None"}</p>
         </div>
         <div className="text-center">
           <span className="text-[10px] text-slate-500 font-semibold uppercase">Active Strains</span>
@@ -83,44 +83,50 @@ function OutbreakSurveillanceView({ outbreakData, onSelectConditionForRecommenda
           <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
           Condition Demand Signals & Surveillance Strains
         </h4>
-        <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto pr-1">
-          {conditions.map((item, idx) => {
-            const strainTone = item.strainLevel === "Critical"
-              ? "bg-rose-50 text-rose-700 border-rose-200"
-              : item.strainLevel === "High"
-              ? "bg-amber-50 text-amber-700 border-amber-200"
-              : "bg-emerald-50 text-emerald-700 border-emerald-200";
+        {conditions.length === 0 ? (
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center text-xs text-slate-500">
+            No outbreak condition data currently recorded.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto pr-1">
+            {conditions.map((item, idx) => {
+              const strainTone = item.strainLevel === "Critical"
+                ? "bg-rose-50 text-rose-700 border-rose-200"
+                : item.strainLevel === "High"
+                ? "bg-amber-50 text-amber-700 border-amber-200"
+                : "bg-emerald-50 text-emerald-700 border-emerald-200";
 
-            return (
-              <div
-                key={idx}
-                className="p-3 bg-slate-50/80 border border-slate-200/80 rounded-xl flex flex-col gap-2 hover:border-amber-300 transition-all shadow-2xs"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm text-slate-800">{item.condition}</span>
-                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${strainTone}`}>
-                      {item.strainLevel}
-                    </span>
-                  </div>
-                  <span className="text-xs font-mono font-bold text-slate-700">{item.patientCount} cases</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <Metric label="Case Share" value={`${item.sharePct}%`} tone="text-amber-700" />
-                  <Metric label="Risk Score" value={`${item.riskScore}x`} tone="text-rose-700" />
-                </div>
-
-                <button
-                  onClick={() => onSelectConditionForRecommendation(item.condition)}
-                  className="w-full py-1.5 px-3 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+              return (
+                <div
+                  key={idx}
+                  className="p-3 bg-slate-50/80 border border-slate-200/80 rounded-xl flex flex-col gap-2 hover:border-amber-300 transition-all shadow-2xs"
                 >
-                  <Hospital className="w-3 h-3" /> Find Recommended Hospitals for {item.condition}
-                </button>
-              </div>
-            );
-          })}
-        </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-slate-800">{item.condition}</span>
+                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${strainTone}`}>
+                        {item.strainLevel || "Standard"}
+                      </span>
+                    </div>
+                    <span className="text-xs font-mono font-bold text-slate-700">{item.patientCount != null ? `${item.patientCount} cases` : "Cases unrecorded"}</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <Metric label="Case Share" value={item.sharePct != null ? `${item.sharePct}%` : "N/A"} tone="text-amber-700" />
+                    <Metric label="Risk Score" value={item.riskScore != null ? `${item.riskScore}x` : "N/A"} tone="text-rose-700" />
+                  </div>
+
+                  <button
+                    onClick={() => onSelectConditionForRecommendation(item.condition)}
+                    className="w-full py-1.5 px-3 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+                  >
+                    <Hospital className="w-3 h-3" /> Find Recommended Hospitals for {item.condition}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {stateSummary.length > 0 && (
@@ -140,6 +146,8 @@ function OutbreakSurveillanceView({ outbreakData, onSelectConditionForRecommenda
   );
 }
 
+/*
+// Static demo forecasts commented out to ensure only authentic API results are rendered
 const DEFAULT_BED_FORECASTS = [
   {
     id: "forecast-hosp-1",
@@ -207,9 +215,10 @@ const DEFAULT_BED_FORECASTS = [
     surgeProbability: 0.38
   }
 ];
+*/
 
 function BedForecastsView({ forecasts = [] }) {
-  const displayForecasts = (Array.isArray(forecasts) && forecasts.length > 0) ? forecasts : DEFAULT_BED_FORECASTS;
+  const displayForecasts = Array.isArray(forecasts) ? forecasts : [];
 
   return (
     <div className="flex flex-col gap-3">
@@ -218,53 +227,61 @@ function BedForecastsView({ forecasts = [] }) {
         <span>Predictive AI capacity modeling trained on historical surge and patient admission telemetry.</span>
       </div>
 
-      {displayForecasts.map((fc, idx) => {
-        const riskTone = fc.riskLevel === "critical"
-          ? "bg-rose-100 text-rose-700 border-rose-300"
-          : fc.riskLevel === "high"
-          ? "bg-amber-100 text-amber-700 border-amber-300"
-          : "bg-emerald-100 text-emerald-700 border-emerald-300";
+      {displayForecasts.length === 0 ? (
+        <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl text-center text-xs text-slate-500">
+          No bed demand forecasts currently available.
+        </div>
+      ) : (
+        displayForecasts.map((fc, idx) => {
+          const riskTone = fc.riskLevel === "critical"
+            ? "bg-rose-100 text-rose-700 border-rose-300"
+            : fc.riskLevel === "high"
+            ? "bg-amber-100 text-amber-700 border-amber-300"
+            : "bg-emerald-100 text-emerald-700 border-emerald-300";
 
-        return (
-          <div
-            key={fc.id || idx}
-            className="p-3.5 bg-slate-50/80 border border-slate-200/90 rounded-xl flex flex-col gap-2.5 hover:border-blue-300 transition-all shadow-2xs"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <h4 className="font-bold text-sm text-slate-900">{fc.hospitalName || "Hospital"}</h4>
-                <p className="text-[11px] text-slate-500 font-mono mt-0.5">
-                  Forecast for {fc.predictedForDate || "Tomorrow"} · {fc.modelVersion}
-                </p>
+          return (
+            <div
+              key={fc.id || idx}
+              className="p-3.5 bg-slate-50/80 border border-slate-200/90 rounded-xl flex flex-col gap-2.5 hover:border-blue-300 transition-all shadow-2xs"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h4 className="font-bold text-sm text-slate-900">{fc.hospitalName || "Hospital"}</h4>
+                  <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                    Forecast for {fc.predictedForDate || "Tomorrow"} · {fc.modelVersion || "ML Model"}
+                  </p>
+                </div>
+                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${riskTone}`}>
+                  {fc.riskLevel || "Standard"} Surge Risk
+                </span>
               </div>
-              <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${riskTone}`}>
-                {fc.riskLevel} Surge Risk
-              </span>
-            </div>
 
-            <div className="grid grid-cols-3 gap-1.5 text-center">
-              <Metric label="General Beds" value={fc.predictedBeds} tone="text-blue-700" />
-              <Metric label="ICU Needed" value={fc.predictedICUBeds} tone="text-purple-700" />
-              <Metric label="Emergency" value={fc.predictedEmergencyBeds} tone="text-rose-700" />
-            </div>
+              <div className="grid grid-cols-3 gap-1.5 text-center">
+                <Metric label="General Beds" value={fc.predictedBeds ?? "N/A"} tone="text-blue-700" />
+                <Metric label="ICU Needed" value={fc.predictedICUBeds ?? "N/A"} tone="text-purple-700" />
+                <Metric label="Emergency" value={fc.predictedEmergencyBeds ?? "N/A"} tone="text-rose-700" />
+              </div>
 
-            <div className="flex items-center justify-between text-xs bg-white p-2 rounded-lg border border-slate-200">
-              <div className="flex items-center gap-1 text-slate-600">
-                <span className="text-[10px] uppercase text-slate-400 font-semibold">Capacity Strain:</span>
-                <span className="font-bold font-mono text-amber-600">{fc.capacityStrainPct}%</span>
-              </div>
-              <div className="flex items-center gap-1 text-slate-600">
-                <span className="text-[10px] uppercase text-slate-400 font-semibold">Confidence:</span>
-                <span className="font-bold font-mono text-emerald-600">{Math.round((fc.confidence || 0.9) * 100)}%</span>
+              <div className="flex items-center justify-between text-xs bg-white p-2 rounded-lg border border-slate-200">
+                <div className="flex items-center gap-1 text-slate-600">
+                  <span className="text-[10px] uppercase text-slate-400 font-semibold">Capacity Strain:</span>
+                  <span className="font-bold font-mono text-amber-600">{fc.capacityStrainPct != null ? `${fc.capacityStrainPct}%` : "N/A"}</span>
+                </div>
+                <div className="flex items-center gap-1 text-slate-600">
+                  <span className="text-[10px] uppercase text-slate-400 font-semibold">Confidence:</span>
+                  <span className="font-bold font-mono text-emerald-600">{fc.confidence != null ? `${Math.round(fc.confidence * 100)}%` : "N/A"}</span>
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })
+      )}
     </div>
   );
 }
 
+/*
+// Static demo recommendations commented out to ensure only authentic API results are rendered
 const DEFAULT_RECOMMENDATIONS = [
   {
     rank: 1,
@@ -362,6 +379,7 @@ const DEFAULT_RECOMMENDATIONS = [
     coordinates: [25.4610, 81.8540]
   }
 ];
+*/
 
 function RecommendationTriageView({
   condition,
@@ -373,9 +391,7 @@ function RecommendationTriageView({
   recommendations = [],
   originLabel
 }) {
-  const results = (Array.isArray(recommendations) && recommendations.length > 0)
-    ? recommendations
-    : DEFAULT_RECOMMENDATIONS;
+  const results = Array.isArray(recommendations) ? recommendations : [];
 
   useEffect(() => {
     if (onSubmitRecommendation) {
@@ -392,7 +408,6 @@ function RecommendationTriageView({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Interactive AI Triage & Recommendation Form */}
       <form onSubmit={handleSubmit} className="bg-gradient-to-br from-emerald-950/5 via-teal-900/5 to-slate-100/60 border border-emerald-300/80 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
@@ -404,7 +419,6 @@ function RecommendationTriageView({
           </span>
         </div>
 
-        {/* Condition Input */}
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1">
             Patient Condition / Emergency Case
@@ -420,7 +434,7 @@ function RecommendationTriageView({
             />
           </div>
 
-          {/* Quick Select Suggestion Chips */}
+
           <div className="flex flex-wrap gap-1.5 mt-2">
             {POPULAR_CONDITIONS.map((cond) => (
               <button
@@ -444,7 +458,6 @@ function RecommendationTriageView({
           </div>
         </div>
 
-        {/* Specialty Selector */}
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1">
             Required Specialty (Optional)
@@ -462,7 +475,6 @@ function RecommendationTriageView({
           </select>
         </div>
 
-        {/* PROMINENT SUBMIT BUTTON */}
         <button
           type="submit"
           id="btn-run-ml-recommendation"
@@ -483,7 +495,6 @@ function RecommendationTriageView({
         </button>
       </form>
 
-      {/* Ranked ML Results List */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
@@ -507,13 +518,17 @@ function RecommendationTriageView({
 
               const renderCard = (item, index, isExtended = false) => {
                 const rank = item.rank || index + 1;
-                const matchPct = item.match_percentage ?? (item.recommendation_score ? Math.round(item.recommendation_score * 100) : 85);
+                const matchPct = item.match_percentage != null
+                  ? item.match_percentage
+                  : item.recommendation_score != null
+                  ? Math.round(item.recommendation_score * 100)
+                  : null;
                 const hospitalName = item.hospital_name || item.name || "Hospital";
-                const distance = item.distance_label || item.distance || (item.distance_km ? `${item.distance_km} km` : "Nearby");
-                const phone = item.phone || item.contact || "+91-532-2460123";
+                const distance = item.distance_label || item.distance || (item.distance_km != null ? `${item.distance_km} km` : "Distance not available");
+                const phone = item.phone || item.contact || null;
                 const coords = Array.isArray(item.coordinates) && item.coordinates.length >= 2
                   ? item.coordinates
-                  : (item.latitude && item.longitude ? [item.latitude, item.longitude] : [25.4358, 81.8463]);
+                  : (item.latitude && item.longitude ? [item.latitude, item.longitude] : null);
 
                 const rankBadgeStyle = rank === 1 && !isExtended
                   ? "bg-emerald-600 text-white"
@@ -523,9 +538,9 @@ function RecommendationTriageView({
                   ? "bg-slate-500 text-white"
                   : "bg-slate-700 text-white";
 
-                const matchBadgeStyle = matchPct >= 80
+                const matchBadgeStyle = matchPct != null && matchPct >= 80
                   ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                  : matchPct >= 60
+                  : matchPct != null && matchPct >= 60
                   ? "bg-amber-50 text-amber-700 border-amber-200"
                   : "bg-slate-100 text-slate-700 border-slate-200";
 
@@ -555,22 +570,24 @@ function RecommendationTriageView({
                             )}
                           </div>
                           <p className="text-[11px] text-slate-500 font-mono mt-0.5">
-                            {distance} away · {item.district || "Prayagraj"}
+                            {distance}{item.district ? ` · ${item.district}` : ""}
                           </p>
                         </div>
                       </div>
 
-                      <div className={`px-2.5 py-1 rounded-xl border text-xs font-extrabold flex items-center gap-1 ${matchBadgeStyle}`}>
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        {matchPct}% Match
-                      </div>
+                      {matchPct != null && (
+                        <div className={`px-2.5 py-1 rounded-xl border text-xs font-extrabold flex items-center gap-1 ${matchBadgeStyle}`}>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          {matchPct}% Match
+                        </div>
+                      )}
                     </div>
 
                     {/* Metrics Grid */}
                     <div className="grid grid-cols-3 gap-1.5 text-center">
-                      <Metric label="Avail Beds" value={item.available_beds ?? item.availableBeds ?? 15} tone="text-emerald-700" />
-                      <Metric label="Total Beds" value={item.total_beds ?? item.totalBeds ?? 100} />
-                      <Metric label="Doctors" value={item.number_doctor ?? 18} tone="text-blue-700" />
+                      <Metric label="Avail Beds" value={item.available_beds ?? item.availableBeds ?? "N/A"} tone="text-emerald-700" />
+                      <Metric label="Total Beds" value={item.total_beds ?? item.totalBeds ?? "N/A"} />
+                      <Metric label="Doctors" value={item.number_doctor ?? "N/A"} tone="text-blue-700" />
                     </div>
 
                     {/* Capabilities & Emergency */}
@@ -600,20 +617,32 @@ function RecommendationTriageView({
 
                     {/* Action Buttons */}
                     <div className="flex items-center gap-2 mt-1">
-                      <a
-                        href={`tel:${phone}`}
-                        className="flex-1 py-2 bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
-                      >
-                        <PhoneCall className="w-3.5 h-3.5" /> Call Desk
-                      </a>
-                      <a
-                        href={`https://www.google.com/maps/dir/?api=1&destination=${coords[0]},${coords[1]}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex-1 py-2 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
-                      >
-                        <Navigation className="w-3.5 h-3.5" /> GPS Directions
-                      </a>
+                      {phone ? (
+                        <a
+                          href={`tel:${phone}`}
+                          className="flex-1 py-2 bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                        >
+                          <PhoneCall className="w-3.5 h-3.5" /> Call Desk
+                        </a>
+                      ) : (
+                        <span className="flex-1 py-2 bg-slate-100 text-slate-400 rounded-xl text-xs font-semibold text-center">
+                          Phone not available
+                        </span>
+                      )}
+                      {coords ? (
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${coords[0]},${coords[1]}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 py-2 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                        >
+                          <Navigation className="w-3.5 h-3.5" /> GPS Directions
+                        </a>
+                      ) : (
+                        <span className="flex-1 py-2 bg-slate-100 text-slate-400 rounded-xl text-xs font-semibold text-center">
+                          Location not mapped
+                        </span>
+                      )}
                     </div>
                   </div>
                 );
@@ -1290,15 +1319,28 @@ export default function HospitalDrawer({
 
                   {["beds", "blood"].includes(activeTab) && (
                     <div className="flex items-center gap-2 mt-1">
-                      <a
-                        href={`tel:${record.phone}`}
-                        className="flex-1 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-colors"
-                      >
-                        <PhoneCall className="w-3 h-3" /> Call
-                      </a>
-                      <button className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer">
-                        <Navigation className="w-3 h-3" /> Directions
-                      </button>
+                      {record.phone && record.phone !== "Not provided" ? (
+                        <a
+                          href={`tel:${record.phone}`}
+                          className="flex-1 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-colors"
+                        >
+                          <PhoneCall className="w-3 h-3" /> Call
+                        </a>
+                      ) : (
+                        <span className="flex-1 py-1.5 bg-slate-100 text-slate-400 rounded-lg text-xs font-medium text-center">
+                          No phone
+                        </span>
+                      )}
+                      {record.coordinates && record.coordinates.length >= 2 ? (
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${record.coordinates[0]},${record.coordinates[1]}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-colors text-center no-underline"
+                        >
+                          <Navigation className="w-3 h-3" /> Directions
+                        </a>
+                      ) : null}
                     </div>
                   )}
                 </div>

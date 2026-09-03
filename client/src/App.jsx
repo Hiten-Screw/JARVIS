@@ -1,4 +1,3 @@
-// client/src/App.jsx
 import { useEffect, useState, useCallback } from "react";
 import Navbar from "./components/Navbar";
 import MapCanvas from "./components/MapCanvas";
@@ -44,55 +43,57 @@ export default function App() {
       const hospitalList = Array.isArray(items) ? items : [];
       const mappedHospitals = [];
       const mappedResources = [];
+      const mappedMedicines = [];
 
-      // Check if resources are pre-aggregated from the backend
-      const hasJoinedResources = hospitalList.some((h) => Array.isArray(h.resources) && h.resources.length > 0);
-
-      // If backend hasn't reloaded with aggregation, fetch in parallel
-      const enrichedList = hasJoinedResources
-        ? hospitalList
-        : await Promise.all(
-            hospitalList.map(async (h) => {
-              const [resList, bloodObj] = await Promise.all([
-                api.resources(h.hospitalId || h._id).catch(() => []),
-                api.bloodStock(h.hospitalId || h._id).catch(() => ({ stock: [] }))
-              ]);
-              return {
-                ...h,
-                resources: Array.isArray(resList) ? resList : [],
-                bloodStock: Array.isArray(bloodObj?.stock) ? bloodObj.stock : []
-              };
-            })
-          );
+      // Fetch resources, bloodStock, and medicine inventory in parallel per hospital
+      const enrichedList = await Promise.all(
+        hospitalList.map(async (h) => {
+          const [resList, bloodObj, medInv] = await Promise.all([
+            Array.isArray(h.resources) && h.resources.length > 0
+              ? Promise.resolve(h.resources)
+              : api.resources(h.hospitalId || h._id).catch(() => []),
+            Array.isArray(h.bloodStock) && h.bloodStock.length > 0
+              ? Promise.resolve({ stock: h.bloodStock })
+              : api.bloodStock(h.hospitalId || h._id).catch(() => ({ stock: [] })),
+            api.hospitalInventory(h.hospitalId || h._id).catch(() => [])
+          ]);
+          return {
+            ...h,
+            resources: Array.isArray(resList) ? resList : [],
+            bloodStock: Array.isArray(bloodObj?.stock) ? bloodObj.stock : [],
+            medicineInventory: Array.isArray(medInv) ? medInv : []
+          };
+        })
+      );
 
       for (const hospital of enrichedList) {
         if (!hospital.location?.coordinates || hospital.location.coordinates.length < 2) continue;
 
         const resourceList = Array.isArray(hospital.resources) ? hospital.resources : [];
         const bloodList = Array.isArray(hospital.bloodStock) ? hospital.bloodStock : [];
+        const inventoryList = Array.isArray(hospital.medicineInventory) ? hospital.medicineInventory : [];
 
         const resource = (type) => resourceList.find((item) => item.resourceType === type);
         const general = resource("generalBed");
         const icu = resource("icuBed");
         const oxygen = resource("oxygen");
 
-        // Seeded realistic unique capacities per hospital
-        const totalBeds = general?.total || (hospital.hospitalType === "government" ? 220 : 140);
-        const availBeds = general?.available ?? Math.max(8, Math.floor(totalBeds * 0.18));
-        const icuAvail = icu?.available ?? Math.max(2, Math.floor(totalBeds * 0.04));
-        const oxyBeds = oxygen?.available ?? Math.max(5, Math.floor(totalBeds * 0.15));
+        const totalBeds = general?.total ?? (hospital.totalBeds || 0);
+        const availBeds = general?.available ?? (hospital.availableBeds || 0);
+        const icuAvail = icu?.available ?? 0;
+        const oxyBeds = oxygen?.available ?? 0;
 
         mappedHospitals.push({
           ...hospital,
           id: hospital._id,
           coordinates: [hospital.location.coordinates[1], hospital.location.coordinates[0]],
-          phone: hospital.contact || "+91-532-2460123",
+          phone: hospital.contact || "Not provided",
           availableBeds: availBeds,
           totalBeds: totalBeds,
           icuAvailable: icuAvail,
           oxygenBeds: oxyBeds,
-          number_doctor: hospital.number_doctor || Math.max(12, Math.floor(totalBeds * 0.2)),
-          specializations: hospital.specializations?.length ? hospital.specializations : ["Emergency", "General Medicine"],
+          number_doctor: hospital.number_doctor ?? null,
+          specializations: hospital.specializations?.length ? hospital.specializations : [],
           bloodStock: Object.fromEntries((bloodList || []).map((item) => [item.bloodGroup, item.currentStock]))
         });
 
@@ -101,17 +102,30 @@ export default function App() {
           hospitalId: hospital._id,
           hospitalName: hospital.name,
           resourceType: item.resourceType,
-          available: item.available,
-          total: item.total
+          available: item.available ?? 0,
+          total: item.total ?? 0
+        })));
+
+        mappedMedicines.push(...inventoryList.map((item) => ({
+          id: item._id,
+          hospitalId: hospital._id,
+          hospitalName: hospital.name,
+          medicineId: item.medicineId?._id || item.medicineId,
+          medicineName: item.medicineId?.name || "Medicine",
+          quantity: item.quantity ?? 0,
+          minimumStock: item.minimumStock ?? 0,
+          expiryDate: item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : "Not specified"
         })));
       }
 
       setHospitals(mappedHospitals);
       setResourceRecords(mappedResources);
+      setMedicineRecords(mappedMedicines);
     }).catch((err) => {
       console.error("Failed to load hospitals:", err);
       setHospitals([]);
       setResourceRecords([]);
+      setMedicineRecords([]);
     });
 
     // Load Outbreak Surveillance Data
@@ -126,8 +140,8 @@ export default function App() {
 
     // Prefetch ML recommendations from dataset
     api.recommendHospitals({
-      latitude: 25.4358,
-      longitude: 81.8463,
+      latitude: DEFAULT_MAP_CENTER[0],
+      longitude: DEFAULT_MAP_CENTER[1],
       specialty: "",
       condition: "Heart Attack",
       state: "Uttar Pradesh"

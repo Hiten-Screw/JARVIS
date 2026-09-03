@@ -3,7 +3,6 @@ import L from "leaflet";
 export const getHospitalMarkerIcon = (availableBeds, totalBeds) => {
   const percentage = totalBeds > 0 ? (availableBeds / totalBeds) * 100 : 0;
 
-  // Derive pin color based on the agreed spec
   let bgClass = "bg-rose-500 border-rose-200 text-white"; // Red: Full / Diverted
   let pulseClass = "bg-rose-400";
 
