@@ -42,6 +42,19 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
 
+// Root & Health check endpoints
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "success",
+    message: "JARVIS HealthGrid API Server is running",
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "healthy", uptime: process.uptime() });
+});
+
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/hospitals", hospitalRouter);
 app.use("/api/v1/resources", resourceRouter);
