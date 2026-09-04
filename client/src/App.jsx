@@ -30,48 +30,23 @@ export default function App() {
   const [bedForecasts, setBedForecasts] = useState([]);
   const [isMlLoading, setIsMlLoading] = useState(false);
 
-  // Initial Data Loading
-  useEffect(() => {
-    api.medicines()
-      .then((items) => setMedicineCatalog((Array.isArray(items) ? items : []).map((medicine) => ({
-        id: medicine._id,
-        name: medicine.name
-      }))))
-      .catch(() => setMedicineCatalog([]));
+  const [isLoadingHospitals, setIsLoadingHospitals] = useState(false);
 
-    api.hospitals().then(async (items) => {
+  // On-demand geospatial hospital loading
+  const fetchHospitalsForLocation = useCallback(async (lat, lng, rKm) => {
+    if (lat === undefined || lng === undefined) return;
+    setIsLoadingHospitals(true);
+    try {
+      const items = await api.hospitals({ lat, lng, radiusKm: rKm });
       const hospitalList = Array.isArray(items) ? items : [];
       const mappedHospitals = [];
       const mappedResources = [];
-      const mappedMedicines = [];
 
-      // Fetch resources, bloodStock, and medicine inventory in parallel per hospital
-      const enrichedList = await Promise.all(
-        hospitalList.map(async (h) => {
-          const [resList, bloodObj, medInv] = await Promise.all([
-            Array.isArray(h.resources) && h.resources.length > 0
-              ? Promise.resolve(h.resources)
-              : api.resources(h.hospitalId || h._id).catch(() => []),
-            Array.isArray(h.bloodStock) && h.bloodStock.length > 0
-              ? Promise.resolve({ stock: h.bloodStock })
-              : api.bloodStock(h.hospitalId || h._id).catch(() => ({ stock: [] })),
-            api.hospitalInventory(h.hospitalId || h._id).catch(() => [])
-          ]);
-          return {
-            ...h,
-            resources: Array.isArray(resList) ? resList : [],
-            bloodStock: Array.isArray(bloodObj?.stock) ? bloodObj.stock : [],
-            medicineInventory: Array.isArray(medInv) ? medInv : []
-          };
-        })
-      );
-
-      for (const hospital of enrichedList) {
+      for (const hospital of hospitalList) {
         if (!hospital.location?.coordinates || hospital.location.coordinates.length < 2) continue;
 
         const resourceList = Array.isArray(hospital.resources) ? hospital.resources : [];
         const bloodList = Array.isArray(hospital.bloodStock) ? hospital.bloodStock : [];
-        const inventoryList = Array.isArray(hospital.medicineInventory) ? hospital.medicineInventory : [];
 
         const resource = (type) => resourceList.find((item) => item.resourceType === type);
         const general = resource("generalBed");
@@ -105,28 +80,30 @@ export default function App() {
           available: item.available ?? 0,
           total: item.total ?? 0
         })));
-
-        mappedMedicines.push(...inventoryList.map((item) => ({
-          id: item._id,
-          hospitalId: hospital._id,
-          hospitalName: hospital.name,
-          medicineId: item.medicineId?._id || item.medicineId,
-          medicineName: item.medicineId?.name || "Medicine",
-          quantity: item.quantity ?? 0,
-          minimumStock: item.minimumStock ?? 0,
-          expiryDate: item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : "Not specified"
-        })));
       }
 
       setHospitals(mappedHospitals);
       setResourceRecords(mappedResources);
-      setMedicineRecords(mappedMedicines);
-    }).catch((err) => {
-      console.error("Failed to load hospitals:", err);
-      setHospitals([]);
-      setResourceRecords([]);
-      setMedicineRecords([]);
-    });
+    } catch (err) {
+      console.error("Failed to load nearby hospitals:", err);
+    } finally {
+      setIsLoadingHospitals(false);
+    }
+  }, []);
+
+  // Fetch hospitals whenever location (origin) or radiusKm changes
+  useEffect(() => {
+    fetchHospitalsForLocation(origin[0], origin[1], radiusKm);
+  }, [origin, radiusKm, fetchHospitalsForLocation]);
+
+  // Initial Metadata & Global Catalogs Loading
+  useEffect(() => {
+    api.medicines()
+      .then((items) => setMedicineCatalog((Array.isArray(items) ? items : []).map((medicine) => ({
+        id: medicine._id,
+        name: medicine.name
+      }))))
+      .catch(() => setMedicineCatalog([]));
 
     // Load Outbreak Surveillance Data
     api.outbreakSurveillance()
@@ -138,7 +115,7 @@ export default function App() {
       .then((data) => setBedForecasts(Array.isArray(data) ? data : []))
       .catch(() => setBedForecasts([]));
 
-    // Prefetch ML recommendations from dataset
+    // Prefetch initial ML recommendations for current origin
     api.recommendHospitals({
       latitude: DEFAULT_MAP_CENTER[0],
       longitude: DEFAULT_MAP_CENTER[1],

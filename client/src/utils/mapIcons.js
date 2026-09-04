@@ -16,9 +16,8 @@ export const getHospitalMarkerIcon = (availableBeds, totalBeds) => {
 
   const htmlMarkup = `
     <div class="relative flex items-center justify-center">
-      <span class="absolute -top-1 -right-1 flex h-3 w-3">
-        <span class="animate-ping absolute inline-flex h-full w-full rounded-full ${pulseClass} opacity-75"></span>
-        <span class="relative inline-flex rounded-full h-3 w-3 ${pulseClass}"></span>
+      <span class="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+        <span class="inline-flex rounded-full h-2.5 w-2.5 ${pulseClass} ring-2 ring-white"></span>
       </span>
       <div class="w-8 h-8 rounded-full border-2 shadow-md flex items-center justify-center font-bold text-xs ${bgClass}">
         ${availableBeds}

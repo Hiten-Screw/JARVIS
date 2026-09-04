@@ -31,7 +31,14 @@ export async function apiRequest(path, options = {}) {
 
 export const api = {
   login: (body) => apiRequest("/auth/login", { method: "POST", body: JSON.stringify(body) }),
-  hospitals: () => apiRequest("/hospitals"),
+  hospitals: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.lat !== undefined && params.lat !== null) query.set("lat", params.lat);
+    if (params.lng !== undefined && params.lng !== null) query.set("lng", params.lng);
+    if (params.radiusKm !== undefined && params.radiusKm !== null) query.set("radiusKm", params.radiusKm);
+    const qs = query.toString();
+    return apiRequest(qs ? `/hospitals?${qs}` : "/hospitals");
+  },
   submitHospitalRegistration: (body) => apiRequest("/hospital-registration", { method: "POST", body: JSON.stringify(body) }),
   registrationRequests: () => apiRequest("/hospital-registration"),
   approveRegistration: (id) => apiRequest(`/hospital-registration/${id}/approve`, { method: "PATCH" }),

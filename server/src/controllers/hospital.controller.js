@@ -77,10 +77,33 @@ export const createHospital = asyncHandler(async (req, res) => {
 });
 
 
-// Get all hospitals with resources and blood stock joined in 1 query
-// GET /api/v1/hospitals
+// Get hospitals with optional geospatial radius filtering
+// GET /api/v1/hospitals?lat=25.4358&lng=81.8463&radiusKm=50
 export const getHospitals = asyncHandler(async (req, res) => {
-    const hospitals = await Hospital.aggregate([
+    const { lat, latitude, lng, longitude, radiusKm, radius } = req.query;
+
+    const queryLat = lat !== undefined ? Number(lat) : latitude !== undefined ? Number(latitude) : NaN;
+    const queryLng = lng !== undefined ? Number(lng) : longitude !== undefined ? Number(longitude) : NaN;
+    const queryRadiusKm = Number(radiusKm ?? radius ?? 50);
+
+    const pipeline = [];
+
+    // If geographic coordinates are supplied, perform fast indexed 2dsphere spatial filtering
+    if (!isNaN(queryLat) && !isNaN(queryLng)) {
+        pipeline.push({
+            $geoNear: {
+                near: {
+                    type: "Point",
+                    coordinates: [queryLng, queryLat]
+                },
+                distanceField: "distanceMeters",
+                maxDistance: Math.max(1, queryRadiusKm) * 1000,
+                spherical: true
+            }
+        });
+    }
+
+    pipeline.push(
         {
             $lookup: {
                 from: "hospitalresources",
@@ -97,7 +120,9 @@ export const getHospitals = asyncHandler(async (req, res) => {
                 as: "bloodStock"
             }
         }
-    ]);
+    );
+
+    const hospitals = await Hospital.aggregate(pipeline);
 
     return res
         .status(200)
